@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Foamy — Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,900;1,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          foam: "#EAF0EC",
+          ink: "#10262B",
+          deep: "#0B3D42",
+          "deep-light": "#154a52",
+          wind: "#2E8B84",
+          alert: "#C1524A",
+          sun: "#E2A33B",
+        },
+        fontFamily: {
+          display: ["Archivo", "sans-serif"],
+          body: ["Archivo", "sans-serif"],
+          mono: ["IBM Plex Mono", "monospace"],
+        },
+      },
+    },
+  };
+</script>
+<style>
+  body { background:#EAF0EC; color:#10262B; }
+  ::selection { background:#2E8B84; color:#EAF0EC; }
+  :focus-visible { outline:2px solid #2E8B84; outline-offset:2px; }
+  @keyframes needleSettle { from { transform: rotate(0deg); } to { transform: rotate(var(--needle-deg)); } }
+  .needle { animation: needleSettle 1.1s cubic-bezier(.22,1,.36,1) forwards; transform-origin:50px 50px; }
+  @keyframes drawerIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+  .drawer-in { animation: drawerIn .35s cubic-bezier(.22,1,.36,1) forwards; }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(6px);} to { opacity:1; transform: translateY(0);} }
+  .fade-up { animation: fadeUp .4s ease-out forwards; }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body class="font-body antialiased min-h-screen flex flex-col">
+
+<div id="banner" class="bg-sun/15 border-b border-sun/40 text-center py-2 px-4">
+  <p class="font-mono text-[11px] text-ink/70">
+    ⚠ Frontend collegato a foamy-backend (localhost:3000) per vento + mare Copernicus reale, con fallback a Open-Meteo diretto se il backend non è in esecuzione. Forecast a 3 giorni sempre via Open-Meteo.
+  </p>
+</div>
+
+<header class="bg-deep text-foam">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
+    <div class="flex items-baseline gap-3">
+      <h1 class="font-display font-black text-2xl sm:text-3xl tracking-tight">Foamy</h1>
+      <span class="font-mono text-[11px] uppercase tracking-widest text-wind border border-wind/40 rounded-full px-2 py-0.5">Puglia</span>
+    </div>
+    <p id="today" class="hidden sm:block font-mono text-xs text-foam/50 capitalize"></p>
+  </div>
+</header>
+
+<div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+  <div id="coastChips" class="flex flex-wrap gap-2"></div>
+  <div id="disciplineChips" class="flex flex-wrap gap-2"></div>
+</div>
+
+<main class="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 pb-16">
+  <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+  <div id="emptyState" class="hidden text-center py-16">
+    <p class="font-display font-bold text-lg text-ink/60 mb-2">Nessuno spot per questi filtri</p>
+    <p class="text-sm text-ink/40 mb-4">Prova a togliere qualche filtro.</p>
+    <button id="resetFilters" class="font-mono text-xs uppercase tracking-wide border border-ink/20 px-4 py-2 rounded-full hover:border-ink/40">Azzera filtri</button>
+  </div>
+</main>
+
+<footer class="border-t border-ink/10 py-6">
+  <p class="max-w-6xl mx-auto px-4 sm:px-6 font-mono text-[11px] text-ink/40">
+    Foamy MVP · Puglia · Dati vento Open-Meteo, dati mare Open-Meteo/ECMWF + Copernicus Marine
+  </p>
+</footer>
+
+<div id="drawerRoot"></div>
+
+<script>
+// URL del backend foamy-backend (Node/Express) — cambiare per il deploy in produzione.
+const API_BASE = "http://localhost:3000";
+
+const FALLBACK_SPOTS = [
+  {"id":"san-foca","name":"San Foca (Li Marangi)","coast":"Adriatico","disciplines":["wave","kite"],"lat":40.3244,"lon":18.4269,"webcam_banner":{"provider":"SkylineWebcams","url":"https://www.skylinewebcams.com/it/webcam/italia/puglia/lecce/san-foca.html"}},
+  {"id":"torre-dellorso","name":"Torre dell'Orso","coast":"Adriatico","disciplines":["wave"],"lat":40.2860,"lon":18.4460,"webcam_banner":{"provider":"Eolo","url":"https://www.eolo.it/webcam/torre-dellorso"}},
+  {"id":"frassanito","name":"Frassanito","coast":"Adriatico","disciplines":["wind","kite","wave"],"lat":40.1980,"lon":18.4670,"webcam_banner":{"provider":"SkylineWebcams","url":"https://www.skylinewebcams.com/it/webcam/italia/puglia/lecce/spiaggia-di-frassanito-alimini.html"}},
+  {"id":"alimini","name":"Alimini","coast":"Adriatico","disciplines":["wind","kite","wave"],"lat":40.2210,"lon":18.4580,"webcam_banner":{"provider":"Scuola Locale (Alimini)","url":"https://www.aliminikite.it/webcam-live"}},
+  {"id":"rosamarina-ostuni","name":"Rosamarina di Ostuni","coast":"Adriatico","disciplines":["wave","wind"],"lat":40.7340,"lon":17.6070,"webcam_banner":{"provider":"365giorniinvisb","url":"https://www.365giorniinvisb.it/webcam/rosa-marina-ostuni"}},
+  {"id":"porto-cesareo-reef","name":"Porto Cesareo (Il Reef)","coast":"Ionio","disciplines":["wave","wind","kite"],"lat":40.2590,"lon":17.8990,"webcam_banner":{"provider":"Vedetta.org","url":"https://www.vedetta.org/webcam/porto-cesareo"}},
+  {"id":"vieste-scialmarino","name":"Vieste (Spiaggia di Scialmarino)","coast":"Gargano","disciplines":["wind","kite"],"lat":41.8940,"lon":16.1870,"webcam_banner":{"provider":"SkylineWebcams","url":"https://www.skylinewebcams.com/it/webcam/italia/puglia/foggia/vieste.html"}},
+  {"id":"torre-san-giovanni","name":"Torre San Giovanni","coast":"Ionio","disciplines":["wind","kite"],"lat":39.8480,"lon":18.1800,"webcam_banner":{"provider":"Scuola Locale (TSG Kite Club)","url":"https://www.tsgkiteclub.it/webcam"}},
+  {"id":"gallipoli-baia-verde","name":"Gallipoli (Baia Verde)","coast":"Ionio","disciplines":["wind","kite","wave"],"lat":40.0370,"lon":17.9980,"webcam_banner":{"provider":"SkylineWebcams","url":"https://www.skylinewebcams.com/it/webcam/italia/puglia/lecce/gallipoli.html"}},
+  {"id":"campomarino-curvone","name":"Campomarino di Maruggio (Il Curvone)","coast":"Ionio","disciplines":["wave"],"lat":40.3250,"lon":17.6530,"webcam_banner":{"provider":"Eolo","url":"https://www.eolo.it/webcam/campomarino-curvone"}},
+  {"id":"torre-lapillo-punta-prosciutto","name":"Torre Lapillo / Punta Prosciutto","coast":"Ionio","disciplines":["kite","wind"],"lat":40.3160,"lon":17.8260,"webcam_banner":{"provider":"Vedetta.org","url":"https://www.vedetta.org/webcam/punta-prosciutto"}},
+  {"id":"gallipoli-lido-pizzo","name":"Gallipoli (Lido Pizzo)","coast":"Ionio","disciplines":["kite","wind"],"lat":40.0010,"lon":17.9780,"webcam_banner":{"provider":"Scuola Locale (Lido Pizzo)","url":"https://www.lidopizzokite.it/webcam"}},
+  {"id":"bari-pane-pomodoro","name":"Bari (Pane e Pomodoro)","coast":"Adriatico","disciplines":["kite","wind"],"lat":41.1170,"lon":16.8690,"webcam_banner":{"provider":"SkylineWebcams","url":"https://www.skylinewebcams.com/it/webcam/italia/puglia/bari/bari.html"}},
+  {"id":"monopoli-capitolo","name":"Monopoli (Capitolo)","coast":"Adriatico","disciplines":["wind","kite","wave"],"lat":40.9360,"lon":17.2570,"webcam_banner":{"provider":"365giorniinvisb","url":"https://www.365giorniinvisb.it/webcam/monopoli-capitolo"}},
+  {"id":"torre-guaceto","name":"Torre Guaceto","coast":"Adriatico","disciplines":["kite"],"lat":40.7060,"lon":17.7800,"webcam_banner":{"provider":"Vedetta.org","url":"https://www.vedetta.org/webcam/torre-guaceto"}},
+  {"id":"frigole","name":"Frigole","coast":"Adriatico","disciplines":["kite","wind"],"lat":40.4370,"lon":18.1870,"webcam_banner":{"provider":"Eolo","url":"https://www.eolo.it/webcam/frigole"}},
+  {"id":"torre-canne","name":"Torre Canne","coast":"Adriatico","disciplines":["wind","kite","wave"],"lat":40.8040,"lon":17.4430,"webcam_banner":{"provider":"SkylineWebcams","url":"https://www.skylinewebcams.com/it/webcam/italia/puglia/brindisi/torre-canne.html"}},
+  {"id":"peschici-baia-manaccora","name":"Peschici (Baia di Manaccora)","coast":"Gargano","disciplines":["wind","kite"],"lat":41.9490,"lon":16.0010,"webcam_banner":{"provider":"Eolo","url":"https://www.eolo.it/webcam/peschici-manaccora"}},
+  {"id":"marina-di-lesina","name":"Marina di Lesina","coast":"Gargano","disciplines":["wind","kite"],"lat":41.8820,"lon":15.3390,"webcam_banner":{"provider":"Scuola Locale (Lesina)","url":"https://www.lesinakiteclub.it/webcam"}}
+];
+
+let SPOTS = FALLBACK_SPOTS;
+
+async function loadSpots() {
+  try {
+    const res = await fetch(`${API_BASE}/api/spots`);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if (Array.isArray(data) && data.length) return data;
+    throw new Error("empty spots list");
+  } catch {
+    return FALLBACK_SPOTS;
+  }
+}
+
+// Condizioni attuali: foamy-backend (vento Open-Meteo + mare Copernicus reale via
+// foamy-copernicus), con fallback diretto a Open-Meteo se il backend non risponde.
+// Forecast 3 giorni: il backend non lo espone ancora, quindi viene calcolato
+// lato client dai dati giornalieri di Open-Meteo (mare qui è solo ECMWF, non Copernicus).
+const forecastCache = new Map();
+
+function classifySeaState(height) {
+  if (height == null) return ["Dato non disponibile", "#10262B", "N/D", 0];
+  if (height < 0.1) return ["Forza 1 - Quasi Calmo", "#2E8B84", "Quasi calmo", 1];
+  if (height < 0.5) return ["Forza 2 - Poco Mosso", "#4FA39B", "Poco mosso", 2];
+  if (height < 1.25) return ["Forza 3 - Mosso", "#E2A33B", "Mosso", 3];
+  if (height < 2.5) return ["Forza 4 - Molto Mosso", "#D07A3E", "Molto mosso", 4];
+  return ["Forza 5 - Agitato", "#C1524A", "Agitato", 5];
+}
+
+function energyFrom(height, period) {
+  if (height == null || period == null) return null;
+  return Math.round(0.5 * height * height * period * 10);
+}
+
+async function fetchJSON(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return res.json();
+}
+
+async function fetchCurrentConditions(spot) {
+  try {
+    const data = await fetchJSON(`${API_BASE}/api/forecast/${spot.id}`);
+    return {
+      windSpeed: data.wind.speedKn,
+      windGusts: data.wind.gustsKn,
+      windDir: data.wind.directionDeg,
+      height: data.sea.waveHeightM ?? null,
+      period: data.sea.wavePeriodS ?? null,
+      energy: data.sea.waveEnergyKJ ?? null,
+      seaStateLabel: data.sea.seaState || null,
+      degraded: !!data.sea.copernicusDegraded,
+      backendUnreachable: false,
+    };
+  } catch {
+    // Backend non raggiungibile: fallback diretto a Open-Meteo, solo vento.
+    const wind = await fetchJSON("https://api.open-meteo.com/v1/forecast?" + new URLSearchParams({
+      latitude: spot.lat, longitude: spot.lon,
+      current: "wind_speed_10m,wind_gusts_10m,wind_direction_10m",
+      wind_speed_unit: "kn", timezone: "Europe/Rome",
+    }));
+    return {
+      windSpeed: wind.current.wind_speed_10m,
+      windGusts: wind.current.wind_gusts_10m,
+      windDir: wind.current.wind_direction_10m,
+      height: null, period: null, energy: null,
+      seaStateLabel: null,
+      degraded: true,
+      backendUnreachable: true,
+    };
+  }
+}
+
+async function fetchThreeDayDays(spot) {
+  const windUrl = "https://api.open-meteo.com/v1/forecast?" + new URLSearchParams({
+    latitude: spot.lat, longitude: spot.lon,
+    daily: "wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant",
+    wind_speed_unit: "kn", forecast_days: 3, timezone: "Europe/Rome",
+  });
+  const marineUrl = "https://marine-api.open-meteo.com/v1/marine?" + new URLSearchParams({
+    latitude: spot.lat, longitude: spot.lon,
+    daily: "wave_height_max,wave_period_max,wave_direction_dominant",
+    forecast_days: 3, timezone: "Europe/Rome",
+  });
+  const [windResult, marineResult] = await Promise.allSettled([fetchJSON(windUrl), fetchJSON(marineUrl)]);
+  if (windResult.status === "rejected") return [];
+
+  const wind = windResult.value;
+  const marine = marineResult.status === "fulfilled" ? marineResult.value : null;
+  return wind.daily.time.map((date, i) => {
+    const dHeight = marine?.daily?.wave_height_max?.[i] ?? null;
+    return {
+      date,
+      windSpeed: wind.daily.wind_speed_10m_max[i],
+      windGusts: wind.daily.wind_gusts_10m_max[i],
+      windDir: wind.daily.wind_direction_10m_dominant[i],
+      height: dHeight,
+      period: marine?.daily?.wave_period_max?.[i] ?? null,
+      seaState: classifySeaState(dHeight),
+    };
+  });
+}
+
+async function fetchForecast(spot) {
+  if (forecastCache.has(spot.id)) return forecastCache.get(spot.id);
+
+  const [current, days] = await Promise.all([fetchCurrentConditions(spot), fetchThreeDayDays(spot)]);
+  const result = {
+    ...current,
+    energy: current.energy ?? energyFrom(current.height, current.period),
+    seaState: classifySeaState(current.height),
+    seaStateLabel: current.seaStateLabel || classifySeaState(current.height)[2],
+    days,
+  };
+  forecastCache.set(spot.id, result);
+  return result;
+}
+
+const DISCIPLINE_LABELS = { wave: "Wave", wind: "Wind", kite: "Kite" };
+const COASTS = ["Tutti", "Adriatico", "Ionio", "Gargano"];
+const DISCIPLINES = [{k:"all",l:"Tutti"},{k:"wave",l:"Wave"},{k:"wind",l:"Wind"},{k:"kite",l:"Kite"}];
+
+let state = { coast: "Tutti", discipline: "all" };
+
+document.getElementById("today").textContent = new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
+
+function chip(label, active, onClick) {
+  const btn = document.createElement("button");
+  btn.textContent = label;
+  btn.className = "font-mono text-xs uppercase tracking-wide px-3 py-1.5 rounded-full border transition-colors " +
+    (active ? "bg-deep text-foam border-deep" : "bg-transparent text-ink/60 border-ink/15 hover:border-ink/40 hover:text-ink");
+  btn.onclick = onClick;
+  return btn;
+}
+
+function renderChips() {
+  const coastEl = document.getElementById("coastChips");
+  const discEl = document.getElementById("disciplineChips");
+  coastEl.innerHTML = ""; discEl.innerHTML = "";
+  COASTS.forEach((c) => coastEl.appendChild(chip(c, state.coast === c, () => { state.coast = c; render(); })));
+  DISCIPLINES.forEach((d) => discEl.appendChild(chip(d.l, state.discipline === d.k, () => { state.discipline = d.k; render(); })));
+}
+
+function compassSVG(directionDeg, size) {
+  return `
+  <div class="relative shrink-0" style="width:${size}px;height:${size}px">
+    <svg viewBox="0 0 100 100" class="w-full h-full text-ink">
+      <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="2" opacity="0.25"/>
+      ${[0,90,180,270].map(d=>`<line x1="50" y1="6" x2="50" y2="12" stroke="currentColor" stroke-width="2" opacity="0.35" transform="rotate(${d} 50 50)"/>`).join("")}
+      <text x="50" y="19" text-anchor="middle" font-size="8" fill="currentColor" opacity="0.5" font-family="IBM Plex Mono, monospace">N</text>
+      <g class="needle" style="--needle-deg:${directionDeg}deg">
+        <polygon points="50,16 44,54 50,46 56,54" fill="currentColor"/>
+        <circle cx="50" cy="50" r="4" fill="currentColor"/>
+      </g>
+    </svg>
+  </div>`;
+}
+
+function spotCard(spot) {
+  const card = document.createElement("button");
+  card.className = "group text-left bg-white/60 hover:bg-white border border-ink/10 hover:border-deep/30 rounded-lg p-4 transition-all fade-up";
+  card.innerHTML = `
+    <div class="flex items-start justify-between gap-2 mb-3">
+      <h3 class="font-display font-bold text-lg leading-tight text-ink group-hover:text-deep transition-colors">${spot.name}</h3>
+      <span class="font-mono text-[10px] uppercase tracking-wide text-ink/40 shrink-0 pt-1">${spot.coast}</span>
+    </div>
+    <div class="flex flex-wrap gap-1.5 mb-3">
+      ${spot.disciplines.map(d=>`<span class="font-mono text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-deep/5 text-deep border border-deep/15">${DISCIPLINE_LABELS[d]||d}</span>`).join("")}
+    </div>
+    <p class="font-mono text-xs text-ink/40 group-hover:text-wind transition-colors">Vedi condizioni live →</p>
+  `;
+  card.onclick = () => openDrawer(spot);
+  return card;
+}
+
+function render() {
+  renderChips();
+  const grid = document.getElementById("grid");
+  const empty = document.getElementById("emptyState");
+  grid.innerHTML = "";
+  const filtered = SPOTS.filter(s => (state.coast === "Tutti" || s.coast === state.coast) && (state.discipline === "all" || s.disciplines.includes(state.discipline)));
+  if (filtered.length === 0) {
+    grid.classList.add("hidden");
+    empty.classList.remove("hidden");
+  } else {
+    grid.classList.remove("hidden");
+    empty.classList.add("hidden");
+    filtered.forEach(s => grid.appendChild(spotCard(s)));
+  }
+}
+document.getElementById("resetFilters").onclick = () => { state.coast = "Tutti"; state.discipline = "all"; render(); };
+
+function closeDrawer() { document.getElementById("drawerRoot").innerHTML = ""; document.removeEventListener("keydown", escHandler); }
+function escHandler(e) { if (e.key === "Escape") closeDrawer(); }
+
+function dayLabel(dateStr, idx) {
+  if (idx === 0) return "Oggi";
+  if (idx === 1) return "Domani";
+  const d = new Date(dateStr + "T12:00:00");
+  return d.toLocaleDateString("it-IT", { weekday: "short", day: "numeric" });
+}
+
+function forecastContent(spot, f) {
+  return `
+    <section class="flex items-center gap-4 bg-white/70 rounded-lg p-4 border border-ink/10">
+      ${compassSVG(f.windDir, 64)}
+      <div class="flex-1 grid grid-cols-2 gap-4">
+        <div><p class="font-mono text-[10px] uppercase tracking-wide text-ink/40 mb-1">Vento</p><p class="font-mono text-2xl tabular-nums">${f.windSpeed}<span class="text-sm text-ink/40 ml-1">kn</span></p></div>
+        <div><p class="font-mono text-[10px] uppercase tracking-wide text-ink/40 mb-1">Raffiche</p><p class="font-mono text-2xl tabular-nums">${f.windGusts}<span class="text-sm text-ink/40 ml-1">kn</span></p></div>
+      </div>
+    </section>
+    <section class="bg-white/70 rounded-lg p-4 border border-ink/10 space-y-4">
+      <div class="flex items-center justify-between">
+        <p class="font-mono text-[10px] uppercase tracking-wide text-ink/40">Stato del mare</p>
+        <div class="flex items-center gap-2">
+          <svg width="18" height="22" viewBox="0 0 18 22"><line x1="2" y1="2" x2="2" y2="21" stroke="${f.seaState[1]}" stroke-width="2"/><polygon points="2,2 16,6 2,11" fill="${f.seaState[1]}"/></svg>
+          <span class="font-mono text-xs uppercase tracking-wide" style="color:${f.seaState[1]}">${f.seaStateLabel}<span class="text-ink/30"> · ${f.seaState[3]}/5</span></span>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-4">
+        <div><p class="font-mono text-[10px] uppercase tracking-wide text-ink/40 mb-1">Altezza</p><p class="font-mono text-2xl tabular-nums">${f.height ?? "—"}<span class="text-sm text-ink/40 ml-1">m</span></p></div>
+        <div><p class="font-mono text-[10px] uppercase tracking-wide text-ink/40 mb-1">Periodo</p><p class="font-mono text-2xl tabular-nums">${f.period ?? "—"}<span class="text-sm text-ink/40 ml-1">s</span></p></div>
+        <div><p class="font-mono text-[10px] uppercase tracking-wide text-ink/40 mb-1">Energia</p><p class="font-mono text-2xl tabular-nums">${f.energy ?? "—"}<span class="text-sm text-ink/40 ml-1">kJ</span></p></div>
+      </div>
+      ${f.backendUnreachable ? `<p class="font-mono text-[10px] text-alert bg-alert/10 border border-alert/30 rounded px-2 py-1.5">⚠ Backend (${API_BASE}) non raggiungibile — mostro solo il vento via Open-Meteo diretto.</p>`
+        : f.degraded ? `<p class="font-mono text-[10px] text-sun bg-sun/10 border border-sun/30 rounded px-2 py-1.5">⚠ Dato Copernicus Marine non disponibile in questo momento per questo punto — solo il vento è live.</p>` : ""}
+    </section>
+    <section class="space-y-2">
+      <p class="font-mono text-[10px] uppercase tracking-wide text-ink/40">Prossimi 3 giorni <span class="normal-case text-ink/30">(solo Open-Meteo, no Copernicus)</span></p>
+      <div class="grid grid-cols-3 gap-2">
+        ${f.days.map((d, i) => `
+          <div class="bg-white/70 rounded-lg p-3 border border-ink/10 flex flex-col items-center gap-1.5 text-center">
+            <p class="font-mono text-[10px] uppercase tracking-wide text-ink/50 capitalize">${dayLabel(d.date, i)}</p>
+            ${compassSVG(d.windDir, 32)}
+            <p class="font-mono text-sm tabular-nums">${d.windSpeed}<span class="text-[10px] text-ink/40"> kn</span></p>
+            <p class="font-mono text-[10px] tabular-nums" style="color:${d.seaState[1]}">${d.height ?? "—"} m</p>
+          </div>
+        `).join("")}
+      </div>
+    </section>
+    ${spot.webcam_banner ? `
+    <section class="bg-deep/5 border border-deep/15 rounded-lg p-4 flex items-center justify-between">
+      <div>
+        <p class="font-mono text-[10px] uppercase tracking-wide text-ink/40 mb-1">Webcam live</p>
+        <p class="font-display font-semibold">${spot.webcam_banner.provider}</p>
+      </div>
+      <a href="${spot.webcam_banner.url}" target="_blank" rel="noopener noreferrer" class="font-mono text-xs uppercase tracking-wide bg-deep text-foam px-3 py-1.5 rounded-full hover:bg-deep-light transition-colors">Apri →</a>
+    </section>` : ""}
+    <p class="font-mono text-[10px] text-ink/30 text-center">Fonte: Open-Meteo · aggiornato alle ${new Date().toLocaleTimeString("it-IT")}</p>
+  `;
+}
+
+let openToken = 0;
+
+function openDrawer(spot) {
+  const token = ++openToken;
+  const root = document.getElementById("drawerRoot");
+  root.innerHTML = `
+    <div class="fixed inset-0 z-50 flex justify-end">
+      <div class="absolute inset-0 bg-ink/40 backdrop-blur-[2px]" id="backdrop"></div>
+      <aside class="relative w-full max-w-md h-full bg-foam shadow-2xl drawer-in overflow-y-auto">
+        <div class="bg-deep text-foam px-6 py-5 flex items-start justify-between">
+          <div>
+            <p class="font-mono text-[10px] uppercase tracking-widest text-wind mb-1">${spot.coast}</p>
+            <h2 class="font-display font-black text-2xl leading-tight">${spot.name}</h2>
+          </div>
+          <button id="closeBtn" aria-label="Chiudi pannello" class="text-foam/60 hover:text-foam text-2xl leading-none px-2 -mr-2">×</button>
+        </div>
+        <div id="drawerBody" class="p-6 space-y-6">
+          <p class="font-mono text-xs text-ink/40 text-center py-12">Caricamento condizioni live…</p>
+        </div>
+      </aside>
+    </div>
+  `;
+  document.getElementById("backdrop").onclick = closeDrawer;
+  document.getElementById("closeBtn").onclick = closeDrawer;
+  document.addEventListener("keydown", escHandler);
+
+  fetchForecast(spot)
+    .then((f) => {
+      if (token !== openToken) return;
+      document.getElementById("drawerBody").innerHTML = forecastContent(spot, f);
+    })
+    .catch(() => {
+      if (token !== openToken) return;
+      document.getElementById("drawerBody").innerHTML = `
+        <p class="font-mono text-xs text-alert text-center py-12">⚠ Impossibile recuperare i dati meteo-mare in questo momento.<br>Riprova più tardi.</p>
+      `;
+    });
+}
+
+render();
+loadSpots().then((spots) => { SPOTS = spots; render(); });
+</script>
+</body>
+</html>
