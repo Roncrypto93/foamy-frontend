@@ -185,7 +185,7 @@ async function fetchCurrentConditions(spot) {
   }
 }
 
-async function fetchThreeDayDays(spot) {
+async function fetchThreeDayDaysFromOpenMeteo(spot) {
   const windUrl = "https://api.open-meteo.com/v1/forecast?" + new URLSearchParams({
     latitude: spot.lat, longitude: spot.lon,
     daily: "wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant",
@@ -213,6 +213,26 @@ async function fetchThreeDayDays(spot) {
       seaState: classifySeaState(dHeight),
     };
   });
+}
+
+// Forecast 3 giorni: prova prima foamy-backend (/daily, mare Copernicus reale
+// per-giorno), fallback a Open-Meteo diretto (solo ECMWF) se il backend o
+// l'endpoint /daily non sono disponibili.
+async function fetchThreeDayDays(spot) {
+  try {
+    const data = await fetchJSON(`${API_BASE}/api/forecast/${spot.id}/daily`);
+    return data.days.map((d) => ({
+      date: d.date,
+      windSpeed: d.wind.speedKn,
+      windGusts: d.wind.gustsKn,
+      windDir: d.wind.directionDeg,
+      height: d.sea.waveHeightM,
+      period: d.sea.wavePeriodS,
+      seaState: classifySeaState(d.sea.waveHeightM),
+    }));
+  } catch {
+    return fetchThreeDayDaysFromOpenMeteo(spot);
+  }
 }
 
 async function fetchForecast(spot) {
@@ -340,7 +360,7 @@ function forecastContent(spot, f) {
         : f.degraded ? `<p class="font-mono text-[10px] text-sun bg-sun/10 border border-sun/30 rounded px-2 py-1.5">⚠ Dato Copernicus Marine non disponibile in questo momento per questo punto — solo il vento è live.</p>` : ""}
     </section>
     <section class="space-y-2">
-      <p class="font-mono text-[10px] uppercase tracking-wide text-ink/40">Prossimi 3 giorni <span class="normal-case text-ink/30">(solo Open-Meteo, no Copernicus)</span></p>
+      <p class="font-mono text-[10px] uppercase tracking-wide text-ink/40">Prossimi 3 giorni</p>
       <div class="grid grid-cols-3 gap-2">
         ${f.days.map((d, i) => `
           <div class="bg-white/70 rounded-lg p-3 border border-ink/10 flex flex-col items-center gap-1.5 text-center">
