@@ -128,9 +128,9 @@ async function loadSpots() {
 
 // Condizioni attuali: foamy-backend (vento Open-Meteo + mare Copernicus reale via
 // foamy-copernicus), con fallback diretto a Open-Meteo se il backend non risponde.
-// Forecast 3 giorni: il backend non lo espone ancora, quindi viene calcolato
-// lato client dai dati giornalieri di Open-Meteo (mare qui è solo ECMWF, non Copernicus).
-const forecastCache = new Map();
+// Forecast 3 giorni: foamy-backend (/daily, mare Copernicus reale per-giorno),
+// fallback a Open-Meteo diretto (solo ECMWF) se il backend non risponde in tempo.
+// Le due parti si caricano e si mostrano in modo indipendente nel pannello.
 
 function classifySeaState(height) {
   if (height == null) return ["Dato non disponibile", "#10262B", "N/D", 0];
@@ -146,10 +146,16 @@ function energyFrom(height, period) {
   return Math.round(0.5 * height * height * period * 10);
 }
 
-async function fetchJSON(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  return res.json();
+async function fetchJSON(url, timeoutMs) {
+  const controller = timeoutMs ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  try {
+    const res = await fetch(url, controller ? { signal: controller.signal } : undefined);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.json();
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 async function fetchCurrentConditions(spot) {
@@ -230,10 +236,13 @@ async function fetchThreeDayDaysFromOpenMeteo(spot) {
 
 // Forecast 3 giorni: prova prima foamy-backend (/daily, mare Copernicus reale
 // per-giorno), fallback a Open-Meteo diretto (solo ECMWF) se il backend o
-// l'endpoint /daily non sono disponibili.
+// l'endpoint /daily non sono disponibili. Il backend può metterci fino a ~1-2
+// minuti la prima volta per uno spot (Copernicus a freddo su hosting
+// free-tier, 3 chiamate sequenziali) — il timeout qui è solo una rete di
+// sicurezza contro un blocco totale, non un limite stretto per "essere veloci".
 async function fetchThreeDayDays(spot) {
   try {
-    const data = await fetchJSON(`${API_BASE}/api/forecast/${spot.id}/daily`);
+    const data = await fetchJSON(`${API_BASE}/api/forecast/${spot.id}/daily`, 90000);
     return data.days.map((d) => ({
       date: d.date,
       windSpeed: d.wind.speedKn,
@@ -248,21 +257,6 @@ async function fetchThreeDayDays(spot) {
   } catch {
     return fetchThreeDayDaysFromOpenMeteo(spot);
   }
-}
-
-async function fetchForecast(spot) {
-  if (forecastCache.has(spot.id)) return forecastCache.get(spot.id);
-
-  const [current, days] = await Promise.all([fetchCurrentConditions(spot), fetchThreeDayDays(spot)]);
-  const result = {
-    ...current,
-    energy: current.energy ?? energyFrom(current.height, current.period),
-    seaState: classifySeaState(current.height),
-    seaStateLabel: current.seaStateLabel || classifySeaState(current.height)[2],
-    days,
-  };
-  forecastCache.set(spot.id, result);
-  return result;
 }
 
 const DISCIPLINE_LABELS = { wave: "Wave", wind: "Wind", kite: "Kite" };
@@ -349,7 +343,11 @@ function dayLabel(dateStr, idx) {
   return d.toLocaleDateString("it-IT", { weekday: "short", day: "numeric" });
 }
 
-function forecastContent(spot, f) {
+// Le condizioni attuali arrivano in fretta (backend cachato o fallback
+// diretto): vengono mostrate subito. Il 3 giorni può metterci molto di più
+// la prima volta (Copernicus a freddo), quindi ha una sua sezione con
+// caricamento indipendente, così il pannello non sembra bloccato.
+function currentConditionsHTML(f) {
   return `
     <section class="flex items-center gap-4 bg-white/70 rounded-lg p-4 border border-ink/10">
       ${compassSVG(f.windDir, 64)}
@@ -374,23 +372,30 @@ function forecastContent(spot, f) {
       ${f.backendUnreachable ? `<p class="font-mono text-[10px] text-alert bg-alert/10 border border-alert/30 rounded px-2 py-1.5">⚠ Backend (${API_BASE}) non raggiungibile — mostro solo il vento via Open-Meteo diretto.</p>`
         : f.degraded ? `<p class="font-mono text-[10px] text-sun bg-sun/10 border border-sun/30 rounded px-2 py-1.5">⚠ Dato Copernicus Marine non disponibile in questo momento per questo punto — solo il vento è live.</p>` : ""}
     </section>
-    <section class="space-y-2">
-      <p class="font-mono text-[10px] uppercase tracking-wide text-ink/40">Prossimi 3 giorni</p>
-      <div class="grid grid-cols-3 gap-2">
-        ${f.days.map((d, i) => `
-          <div class="bg-white/70 rounded-lg p-3 border border-ink/10 flex flex-col items-center gap-1.5 text-center">
-            <p class="font-mono text-[10px] uppercase tracking-wide text-ink/50 capitalize">${dayLabel(d.date, i)}</p>
-            ${compassSVG(d.windDir, 32)}
-            <p class="font-mono text-sm tabular-nums">${d.windSpeed}<span class="text-[10px] text-ink/40"> kn</span></p>
-            <p class="font-mono text-[10px] tabular-nums" style="color:${d.seaState[1]}">${d.height ?? "—"} m</p>
-            <div class="w-full border-t border-ink/10 pt-1.5 mt-0.5 flex justify-between font-mono text-[9px] text-ink/40">
-              <span>${d.waterTemp ?? "—"}°C</span>
-              <span>${d.seaLevel ?? "—"} m</span>
-            </div>
+  `;
+}
+
+function threeDayGridHTML(days) {
+  return `
+    <div class="grid grid-cols-3 gap-2">
+      ${days.map((d, i) => `
+        <div class="bg-white/70 rounded-lg p-3 border border-ink/10 flex flex-col items-center gap-1.5 text-center">
+          <p class="font-mono text-[10px] uppercase tracking-wide text-ink/50 capitalize">${dayLabel(d.date, i)}</p>
+          ${compassSVG(d.windDir, 32)}
+          <p class="font-mono text-sm tabular-nums">${d.windSpeed}<span class="text-[10px] text-ink/40"> kn</span></p>
+          <p class="font-mono text-[10px] tabular-nums" style="color:${d.seaState[1]}">${d.height ?? "—"} m</p>
+          <div class="w-full border-t border-ink/10 pt-1.5 mt-0.5 flex justify-between font-mono text-[9px] text-ink/40">
+            <span>${d.waterTemp ?? "—"}°C</span>
+            <span>${d.seaLevel ?? "—"} m</span>
           </div>
-        `).join("")}
-      </div>
-    </section>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function webcamAndFooterHTML(spot) {
+  return `
     ${spot.webcam_banner ? `
     <section class="bg-deep/5 border border-deep/15 rounded-lg p-4 flex items-center justify-between">
       <div>
@@ -429,10 +434,35 @@ function openDrawer(spot) {
   document.getElementById("closeBtn").onclick = closeDrawer;
   document.addEventListener("keydown", escHandler);
 
-  fetchForecast(spot)
-    .then((f) => {
+  fetchCurrentConditions(spot)
+    .then((current) => {
       if (token !== openToken) return;
-      document.getElementById("drawerBody").innerHTML = forecastContent(spot, f);
+      const f = {
+        ...current,
+        energy: current.energy ?? energyFrom(current.height, current.period),
+        seaState: classifySeaState(current.height),
+        seaStateLabel: current.seaStateLabel || classifySeaState(current.height)[2],
+      };
+      document.getElementById("drawerBody").innerHTML = `
+        ${currentConditionsHTML(f)}
+        <section class="space-y-2">
+          <p class="font-mono text-[10px] uppercase tracking-wide text-ink/40">Prossimi 3 giorni</p>
+          <div id="threeDayBody">
+            <p class="font-mono text-[10px] text-ink/30 text-center py-4">Caricamento previsioni 3 giorni… (la prima volta della giornata può richiedere fino a un minuto)</p>
+          </div>
+        </section>
+        ${webcamAndFooterHTML(spot)}
+      `;
+
+      fetchThreeDayDays(spot)
+        .then((days) => {
+          if (token !== openToken) return;
+          document.getElementById("threeDayBody").innerHTML = threeDayGridHTML(days);
+        })
+        .catch(() => {
+          if (token !== openToken) return;
+          document.getElementById("threeDayBody").innerHTML = `<p class="font-mono text-[10px] text-ink/30 text-center py-4">Previsioni 3 giorni non disponibili al momento.</p>`;
+        });
     })
     .catch(() => {
       if (token !== openToken) return;
