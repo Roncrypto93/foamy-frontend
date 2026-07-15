@@ -160,9 +160,8 @@
     background: linear-gradient(90deg, #fff 0%, #4fd1c5 18%, #86e08a 31%, #f2d94e 44%, #f2994e 60%, #e0524f 78%, #b06ae0 100%);
   }
 
-  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
-  .info-grid .lbl { font-family: var(--font-data); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-dim); margin: 0 0 3px; }
-  .info-grid p.val-text, .desc-text { font-size: 13px; color: var(--ink); line-height: 1.5; margin: 0; }
+  .lbl { font-family: var(--font-data); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-dim); margin: 0 0 3px; }
+  .val-text, .desc-text { font-size: 13px; color: var(--ink); line-height: 1.5; margin: 0; }
   .desc-text { margin-top: 4px; }
 
   .webcam-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
@@ -852,10 +851,8 @@ function spotInfoHTML(spot) {
   return `
     <section class="panel">
       <p class="panel-label">Info spot</p>
-      <div class="info-grid">
-        <div><p class="lbl">Fondale</p><p class="val-text">${info.fondale}</p></div>
-        <div><p class="lbl">Strutture</p><p class="val-text">${info.strutture}</p></div>
-      </div>
+      <p class="lbl">Fondale</p>
+      <p class="val-text" style="margin-bottom:10px">${info.fondale}</p>
       <p class="desc-text">${info.descrizione_tecnica}</p>
     </section>
   `;
