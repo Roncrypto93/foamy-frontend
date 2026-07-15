@@ -102,7 +102,7 @@
   .drawer-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 16px; }
 
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
-  .panel-label { font-family: var(--font-data); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-dim); margin: 0 0 12px; }
+  .panel-label { font-family: var(--font-data); font-weight: 600; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-bright); margin: 0 0 12px; }
 
   .wind-card { display: flex; align-items: center; gap: 22px; }
   .arrow-widget { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; width: 74px; }
@@ -139,14 +139,10 @@
   .tide-trend.rising { color: var(--accent); }
   .tide-trend.falling { color: var(--alert); }
 
-  .day-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
-  .day-strip::-webkit-scrollbar { height: 5px; }
-  .day-strip::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
-  .day-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; flex: 1 1 0; min-width: 92px; }
-  .day-card-label { font-family: var(--font-data); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-dim); }
-  .day-card svg { width: 22px; height: 22px; }
-  .day-card .wind-val { font-family: var(--font-data); font-size: 12px; color: var(--ink-bright); }
-  .day-card .sub-row { display: flex; gap: 8px; font-family: var(--font-data); font-size: 9px; color: var(--ink-dim); border-top: 1px solid var(--border); padding-top: 4px; margin-top: 2px; width: 100%; justify-content: center; }
+  .top-banners { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .top-banners { grid-template-columns: 1fr; } }
+  .panel--wind { border-top: 2px solid var(--accent); }
+  .panel--swell { border-top: 2px solid var(--accent-soft); }
 
   .wave-chart-wrap { position: relative; }
   .wave-chart-wrap svg { width: 100%; height: auto; display: block; }
@@ -516,30 +512,32 @@ function dayLabel(dateStr, idx) {
 
 function currentConditionsHTML(f) {
   return `
-    <section class="panel wind-card">
-      ${arrowSVG(f.windDir, 74)}
-      <div class="wind-numbers" style="flex:1">
-        <p class="panel-label" style="margin:0">Vento corrente</p>
-        <div class="num-primary"><span class="val tabular">${f.windSpeed}</span><span class="unit">kn</span></div>
-        <div class="num-secondary">Raffiche <b class="tabular">${f.windGusts}</b> kn</div>
-        <div class="arrow-cardinal tabular" style="margin-top:2px">${cardinal16(f.windDir)} <span class="arrow-name">${classicalName(f.windDir)}</span></div>
-      </div>
-    </section>
-    <section class="panel">
-      <p class="panel-label">Mare &amp; Acqua</p>
-      <div class="wave-top">
-        <div class="wave-height-group">
-          <div class="wave-height"><span class="val tabular">${f.height ?? "—"}</span><span class="unit">m</span></div>
-          <div class="wave-period"><span class="val tabular">${f.period ?? "—"}</span><span class="unit">s periodo</span></div>
+    <div class="top-banners">
+      <section class="panel panel--wind wind-card">
+        ${arrowSVG(f.windDir, 74)}
+        <div class="wind-numbers" style="flex:1">
+          <p class="panel-label" style="margin:0">Vento</p>
+          <div class="num-primary"><span class="val tabular">${f.windSpeed}</span><span class="unit">kn</span></div>
+          <div class="num-secondary">Raffiche <b class="tabular">${f.windGusts}</b> kn</div>
+          <div class="arrow-cardinal tabular" style="margin-top:2px">${cardinal16(f.windDir)} <span class="arrow-name">${classicalName(f.windDir)}</span></div>
         </div>
-        <div class="kj-readout">
-          <div class="val tabular">${f.energy ?? "—"}</div>
-          <div class="lbl">kJ energia</div>
+      </section>
+      <section class="panel panel--swell">
+        <p class="panel-label">Swell</p>
+        <div class="wave-top">
+          <div class="wave-height-group">
+            <div class="wave-height"><span class="val tabular">${f.height ?? "—"}</span><span class="unit">m</span></div>
+            <div class="wave-period"><span class="val tabular">${f.period ?? "—"}</span><span class="unit">s periodo</span></div>
+          </div>
+          <div class="kj-readout">
+            <div class="val tabular">${f.energy ?? "—"}</div>
+            <div class="lbl">kJ energia</div>
+          </div>
         </div>
-      </div>
-      ${f.backendUnreachable ? `<p class="notice notice--alert">⚠ Backend non raggiungibile — mostro solo il vento via Open-Meteo diretto.</p>`
-        : f.degraded ? `<p class="notice notice--sun">⚠ Dato Copernicus Marine non disponibile in questo momento — solo il vento è live.</p>` : ""}
-    </section>
+        ${f.backendUnreachable ? `<p class="notice notice--alert">⚠ Backend non raggiungibile — mostro solo il vento via Open-Meteo diretto.</p>`
+          : f.degraded ? `<p class="notice notice--sun">⚠ Dato Copernicus Marine non disponibile in questo momento — solo il vento è live.</p>` : ""}
+      </section>
+    </div>
   `;
 }
 
@@ -548,28 +546,7 @@ function tideArrowSVG(rising) {
   return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
 }
 
-function dayStripHTML(days) {
-  return `
-    <section class="space-y-2">
-      <p class="panel-label" style="margin-bottom:8px">Riepilogo 7 giorni</p>
-      <div class="day-strip">
-        ${days.map((d, i) => `
-          <div class="day-card">
-            <span class="day-card-label">${dayLabel(d.date, i)}</span>
-            ${arrowSVG(d.windDir, 22, 0)}
-            <span class="wind-val tabular">${d.windSpeed} kn</span>
-            <div class="sub-row">
-              <span>${d.waterTemp ?? "—"}°C</span>
-              <span>${d.seaLevel ?? "—"}m</span>
-            </div>
-          </div>
-        `).join("")}
-      </div>
-    </section>
-  `;
-}
-
-// ---------- Grafico "Onda Idrodinamica" ----------
+// ---------- Grafico "Mare — 7 giorni" ----------
 function catmullRomPath(points) {
   if (points.length < 2) return "";
   let d = `M${points[0][0].toFixed(1)},${points[0][1].toFixed(1)} `;
@@ -822,7 +799,7 @@ function attachWindChartHover(svg, windChart, xFn, n) {
 function windChartSectionHTML() {
   return `
     <section class="panel">
-      <p class="panel-label" style="margin-bottom:4px">Vento — step 3h</p>
+      <p class="panel-label" style="margin-bottom:4px">Vento — 7 giorni</p>
       <div class="chart-legend">
         <span class="legend-item"><span class="legend-swatch legend-swatch--gradient"></span>Velocità (kn)</span>
         <span class="legend-item"><span class="legend-swatch" style="background:#f4fdfc;opacity:.75"></span>Raffiche</span>
@@ -838,7 +815,7 @@ function windChartSectionHTML() {
 function waveChartSectionHTML() {
   return `
     <section class="panel">
-      <p class="panel-label" style="margin-bottom:4px">L'Onda Idrodinamica — step 3h</p>
+      <p class="panel-label" style="margin-bottom:4px">Mare — 7 giorni</p>
       <div class="chart-legend">
         <span class="legend-item"><span class="legend-swatch" style="background:#4fd1c5"></span>Altezza onda</span>
         <span class="legend-item"><span class="legend-swatch" style="background:#9be3de;opacity:.7"></span>Periodo</span>
@@ -937,10 +914,9 @@ function openDrawer(spot) {
       `;
 
       fetchWeeklyData(spot)
-        .then(({ days, chart, windChart }) => {
+        .then(({ chart, windChart }) => {
           if (token !== openToken) return;
           document.getElementById("threeDaySection").innerHTML = `
-            ${dayStripHTML(days)}
             ${windChartSectionHTML()}
             ${waveChartSectionHTML()}
           `;
