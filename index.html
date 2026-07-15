@@ -119,7 +119,8 @@ async function loadSpots() {
     const res = await fetch(`${API_BASE}/api/spots`);
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
-    if (Array.isArray(data) && data.length) return data;
+    const spots = Array.isArray(data) ? data : data.spots;
+    if (Array.isArray(spots) && spots.length) return spots;
     throw new Error("empty spots list");
   } catch {
     return FALLBACK_SPOTS;
@@ -394,15 +395,33 @@ function threeDayGridHTML(days) {
   `;
 }
 
+function spotInfoHTML(spot) {
+  const info = spot.spot_info;
+  if (!info) return "";
+  return `
+    <section class="bg-white/70 rounded-lg p-4 border border-ink/10 space-y-3">
+      <p class="font-mono text-[10px] uppercase tracking-wide text-ink/40">Info spot</p>
+      <div class="grid grid-cols-2 gap-3">
+        <div><p class="font-mono text-[10px] uppercase tracking-wide text-ink/40 mb-0.5">Fondale</p><p class="text-sm text-ink/80">${info.fondale}</p></div>
+        <div><p class="font-mono text-[10px] uppercase tracking-wide text-ink/40 mb-0.5">Strutture</p><p class="text-sm text-ink/80">${info.strutture}</p></div>
+      </div>
+      <p class="text-sm text-ink/80 leading-relaxed">${info.descrizione_tecnica}</p>
+    </section>
+  `;
+}
+
 function webcamAndFooterHTML(spot) {
   return `
     ${spot.webcam_banner ? `
-    <section class="bg-deep/5 border border-deep/15 rounded-lg p-4 flex items-center justify-between">
-      <div>
-        <p class="font-mono text-[10px] uppercase tracking-wide text-ink/40 mb-1">Webcam live</p>
-        <p class="font-display font-semibold">${spot.webcam_banner.provider}</p>
+    <section class="bg-deep/5 border border-deep/15 rounded-lg p-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="font-mono text-[10px] uppercase tracking-wide text-ink/40 mb-1">Webcam live</p>
+          <p class="font-display font-semibold">${spot.webcam_banner.provider}</p>
+        </div>
+        <a href="${spot.webcam_banner.url}" target="_blank" rel="noopener noreferrer" class="font-mono text-xs uppercase tracking-wide bg-deep text-foam px-3 py-1.5 rounded-full hover:bg-deep-light transition-colors">Apri →</a>
       </div>
-      <a href="${spot.webcam_banner.url}" target="_blank" rel="noopener noreferrer" class="font-mono text-xs uppercase tracking-wide bg-deep text-foam px-3 py-1.5 rounded-full hover:bg-deep-light transition-colors">Apri →</a>
+      ${spot.webcam_banner.fallback && spot.webcam_banner.note ? `<p class="font-mono text-[10px] text-sun bg-sun/10 border border-sun/30 rounded px-2 py-1.5 mt-3">⚠ ${spot.webcam_banner.note}</p>` : ""}
     </section>` : ""}
     <p class="font-mono text-[10px] text-ink/30 text-center">Fonte: Open-Meteo · aggiornato alle ${new Date().toLocaleTimeString("it-IT")}</p>
   `;
@@ -451,6 +470,7 @@ function openDrawer(spot) {
             <p class="font-mono text-[10px] text-ink/30 text-center py-4">Caricamento previsioni 3 giorni… (la prima volta della giornata può richiedere fino a un minuto)</p>
           </div>
         </section>
+        ${spotInfoHTML(spot)}
         ${webcamAndFooterHTML(spot)}
       `;
 
