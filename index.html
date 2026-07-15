@@ -185,15 +185,26 @@ async function fetchCurrentConditions(spot) {
   }
 }
 
+function middayValue(hourly, variable, date) {
+  if (!hourly?.time) return null;
+  const idx = hourly.time.indexOf(`${date}T12:00`);
+  if (idx === -1) return null;
+  return hourly[variable]?.[idx] ?? null;
+}
+
 async function fetchThreeDayDaysFromOpenMeteo(spot) {
   const windUrl = "https://api.open-meteo.com/v1/forecast?" + new URLSearchParams({
     latitude: spot.lat, longitude: spot.lon,
     daily: "wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant",
     wind_speed_unit: "kn", forecast_days: 3, timezone: "Europe/Rome",
   });
+  // Un'unica chiamata Marine per onde + temperatura mare + livello del mare
+  // (proxy marea: Open-Meteo non ha un aggregato giornaliero per questi due,
+  // quindi si prende il valore orario delle 12:00 locali per ogni giorno).
   const marineUrl = "https://marine-api.open-meteo.com/v1/marine?" + new URLSearchParams({
     latitude: spot.lat, longitude: spot.lon,
     daily: "wave_height_max,wave_period_max,wave_direction_dominant",
+    hourly: "sea_surface_temperature,sea_level_height_msl",
     forecast_days: 3, timezone: "Europe/Rome",
   });
   const [windResult, marineResult] = await Promise.allSettled([fetchJSON(windUrl), fetchJSON(marineUrl)]);
@@ -211,6 +222,8 @@ async function fetchThreeDayDaysFromOpenMeteo(spot) {
       height: dHeight,
       period: marine?.daily?.wave_period_max?.[i] ?? null,
       seaState: classifySeaState(dHeight),
+      waterTemp: middayValue(marine?.hourly, "sea_surface_temperature", date),
+      seaLevel: middayValue(marine?.hourly, "sea_level_height_msl", date),
     };
   });
 }
@@ -229,6 +242,8 @@ async function fetchThreeDayDays(spot) {
       height: d.sea.waveHeightM,
       period: d.sea.wavePeriodS,
       seaState: classifySeaState(d.sea.waveHeightM),
+      waterTemp: d.sea.waterTempC,
+      seaLevel: d.sea.seaLevelM,
     }));
   } catch {
     return fetchThreeDayDaysFromOpenMeteo(spot);
@@ -368,6 +383,10 @@ function forecastContent(spot, f) {
             ${compassSVG(d.windDir, 32)}
             <p class="font-mono text-sm tabular-nums">${d.windSpeed}<span class="text-[10px] text-ink/40"> kn</span></p>
             <p class="font-mono text-[10px] tabular-nums" style="color:${d.seaState[1]}">${d.height ?? "—"} m</p>
+            <div class="w-full border-t border-ink/10 pt-1.5 mt-0.5 flex justify-between font-mono text-[9px] text-ink/40">
+              <span>${d.waterTemp ?? "—"}°C</span>
+              <span>${d.seaLevel ?? "—"} m</span>
+            </div>
           </div>
         `).join("")}
       </div>
