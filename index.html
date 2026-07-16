@@ -48,9 +48,6 @@
 
   .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 64px; width: 100%; }
 
-  #banner { background: rgba(224,184,79,0.08); border-bottom: 1px solid rgba(224,184,79,0.25); text-align: center; padding: 8px 16px; }
-  #banner p { font-family: var(--font-data); font-size: 11px; color: var(--ink); margin: 0; }
-
   .topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 20px 0 18px; border-bottom: 1px solid var(--border); }
   .brand { display: flex; align-items: center; gap: 12px; }
   .brand-mark { width: 34px; height: 34px; display: block; border-radius: 50%; flex-shrink: 0; }
@@ -177,10 +174,6 @@
 </head>
 <body>
 
-<div id="banner">
-  <p>⚠ Frontend collegato a foamy-backend (vento + mare Copernicus reale), con fallback a Open-Meteo diretto se il backend non risponde in tempo.</p>
-</div>
-
 <div class="wrap">
   <header class="topbar">
     <div class="brand">
@@ -209,7 +202,7 @@
 </div>
 
 <footer>
-  <p>Foamy · Puglia · Dati vento Open-Meteo, dati mare Open-Meteo/ECMWF + Copernicus Marine</p>
+  <p>Foamy · Previsioni surf, wind & kite per la Puglia</p>
 </footer>
 
 <div id="drawerRoot"></div>
@@ -554,8 +547,8 @@ function currentConditionsHTML(f) {
             <div class="lbl">kJ energia</div>
           </div>
         </div>
-        ${f.backendUnreachable ? `<p class="notice notice--alert">⚠ Backend non raggiungibile — mostro solo il vento via Open-Meteo diretto.</p>`
-          : f.degraded ? `<p class="notice notice--sun">⚠ Dato Copernicus Marine non disponibile in questo momento — solo il vento è live.</p>` : ""}
+        ${f.backendUnreachable ? `<p class="notice notice--alert">⚠ Dati parziali al momento — solo il vento è disponibile.</p>`
+          : f.degraded ? `<p class="notice notice--sun">⚠ Dato onda con precisione ridotta in questo momento.</p>` : ""}
       </section>
     </div>
   `;
@@ -915,7 +908,7 @@ function webcamSectionHTML(spot) {
 function webcamAndFooterHTML(spot) {
   return `
     ${webcamSectionHTML(spot)}
-    <p class="footer-ts">Fonte: Open-Meteo / Copernicus Marine · aggiornato alle ${new Date().toLocaleTimeString("it-IT")}</p>
+    <p class="footer-ts">Aggiornato alle ${new Date().toLocaleTimeString("it-IT")}</p>
   `;
 }
 
@@ -952,7 +945,7 @@ function openDrawer(spot) {
       document.getElementById("drawerBody").innerHTML = `
         ${currentConditionsHTML(f)}
         <div id="threeDaySection">
-          <p class="footer-ts" style="padding:20px 0">Caricamento previsioni 7 giorni… (la prima volta della giornata può richiedere fino a un minuto)</p>
+          <p class="footer-ts" style="padding:20px 0">Caricamento previsioni 7 giorni…</p>
         </div>
         ${spotInfoHTML(spot)}
         ${webcamAndFooterHTML(spot)}
