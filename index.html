@@ -219,7 +219,7 @@ const FALLBACK_SPOTS = [
   {"id":"torre-san-giovanni","name":"Torre San Giovanni","coast":"Ionio","disciplines":["wind","kite"],"lat":39.8480,"lon":18.1800,"webcam_banner":{"provider":"Scuola Locale (TSG Kite Club)","url":"https://www.tsgkiteclub.it/webcam"}},
   {"id":"gallipoli-baia-verde","name":"Gallipoli (Baia Verde)","coast":"Ionio","disciplines":["wind","kite","wave"],"lat":40.0370,"lon":17.9980,"webcam_banner":{"provider":"SkylineWebcams","url":"https://www.skylinewebcams.com/it/webcam/italia/puglia/lecce/gallipoli.html"}},
   {"id":"campomarino-curvone","name":"Campomarino di Maruggio (Il Curvone)","coast":"Ionio","disciplines":["wave"],"lat":40.3250,"lon":17.6530,"webcam_banner":{"provider":"Eolo","url":"https://www.eolo.it/webcam/campomarino-curvone"}},
-  {"id":"torre-lapillo-punta-prosciutto","name":"Torre Lapillo / Punta Prosciutto","coast":"Ionio","disciplines":["kite","wind"],"lat":40.3160,"lon":17.8260,"webcam_banner":{"provider":"Vedetta.org","url":"https://www.vedetta.org/webcam/punta-prosciutto"}},
+  {"id":"torre-lapillo-punta-prosciutto","name":"Torre Lapillo (Gatto Nero)","coast":"Ionio","disciplines":["kite","wind"],"lat":40.3160,"lon":17.8260,"webcam_banner":{"provider":"Vedetta.org","url":"https://www.vedetta.org/webcam/punta-prosciutto"}},
   {"id":"gallipoli-lido-pizzo","name":"Gallipoli (Lido Pizzo)","coast":"Ionio","disciplines":["kite","wind"],"lat":40.0010,"lon":17.9780,"webcam_banner":{"provider":"Scuola Locale (Lido Pizzo)","url":"https://www.lidopizzokite.it/webcam"}},
   {"id":"bari-pane-pomodoro","name":"Bari (Pane e Pomodoro)","coast":"Adriatico","disciplines":["kite","wind"],"lat":41.1170,"lon":16.8690,"webcam_banner":{"provider":"SkylineWebcams","url":"https://www.skylinewebcams.com/it/webcam/italia/puglia/bari/bari.html"}},
   {"id":"monopoli-capitolo","name":"Monopoli (Capitolo)","coast":"Adriatico","disciplines":["wind","kite","wave"],"lat":40.9360,"lon":17.2570,"webcam_banner":{"provider":"365giorniinvisb","url":"https://www.365giorniinvisb.it/webcam/monopoli-capitolo"}},
@@ -607,21 +607,6 @@ function catmullRomPath(points) {
   return d;
 }
 
-function findPeaks(values) {
-  const peaks = [];
-  for (let i = 1; i < values.length - 1; i++) {
-    if (values[i] == null) continue;
-    if (values[i] >= values[i - 1] && values[i] >= values[i + 1] && values[i] > 0) {
-      if (peaks.length && i - peaks[peaks.length - 1] < 3) {
-        if (values[i] > values[peaks[peaks.length - 1]]) peaks[peaks.length - 1] = i;
-      } else {
-        peaks.push(i);
-      }
-    }
-  }
-  return peaks.slice(0, 7);
-}
-
 const CHART_W = 640, CHART_H = 200, WIND_CHART_H = 260, PAD_L = 6, PAD_R = 6, PAD_T = 36, PAD_B = 22;
 const PLOT_W = CHART_W - PAD_L - PAD_R, PLOT_H = CHART_H - PAD_T - PAD_B;
 
@@ -655,24 +640,16 @@ function renderWaveChart(svgEl_, chart) {
     return;
   }
   const heights = chart.map(p => p.waveHeightM ?? 0);
-  const periods = chart.map(p => p.wavePeriodS ?? 0);
+  // Forza del mare (scala Douglas, 0-5) dallo stesso classificatore usato
+  // altrove nel sito: una linea che attraversa le bar dell'altezza invece
+  // di una sezione testuale separata.
+  const forces = heights.map((h) => classifySeaState(h)[3] ?? 0);
   const maxH = Math.max(0.3, ...heights) * 1.2;
-  const maxP = Math.max(2, ...periods) * 1.15;
+  const maxF = 5;
   const n = chart.length;
   const x = (i) => PAD_L + (i / (n - 1)) * PLOT_W;
   const yH = (v) => PAD_T + PLOT_H - (v / maxH) * PLOT_H;
-  const yP = (v) => PAD_T + PLOT_H - (v / maxP) * PLOT_H;
-
-  const defs = svgElNS("defs", {});
-  const grad = svgElNS("linearGradient", { id: "waveGrad", x1: "0", y1: "0", x2: "0", y2: "1" });
-  grad.appendChild(svgElNS("stop", { offset: "0%", "stop-color": "#4fd1c5", "stop-opacity": "0.85" }));
-  grad.appendChild(svgElNS("stop", { offset: "55%", "stop-color": "#4fd1c5", "stop-opacity": "0.25" }));
-  grad.appendChild(svgElNS("stop", { offset: "100%", "stop-color": "#000000", "stop-opacity": "0" }));
-  defs.appendChild(grad);
-  const glow = svgElNS("filter", { id: "glow", x: "-60%", y: "-60%", width: "220%", height: "220%" });
-  glow.innerHTML = '<feGaussianBlur stdDeviation="2.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>';
-  defs.appendChild(glow);
-  svgEl_.appendChild(defs);
+  const yF = (v) => PAD_T + PLOT_H - (v / maxF) * PLOT_H;
 
   // griglia orizzontale leggera
   [0, 0.5, 1].forEach((f) => {
@@ -682,29 +659,24 @@ function renderWaveChart(svgEl_, chart) {
 
   renderDayBoundaries(svgEl_, x, chart, PAD_T, PAD_B, CHART_H);
 
-  // area onda (curva morbida, sfumatura turchese -> nero)
-  const heightPts = heights.map((h, i) => [x(i), yH(h)]);
-  const areaD = catmullRomPath(heightPts) + `L${x(n - 1).toFixed(1)},${(CHART_H - PAD_B).toFixed(1)} L${PAD_L},${(CHART_H - PAD_B).toFixed(1)} Z`;
-  svgEl_.appendChild(svgElNS("path", { d: areaD, fill: "url(#waveGrad)" }));
-  svgEl_.appendChild(svgElNS("path", { d: catmullRomPath(heightPts), fill: "none", stroke: "#4fd1c5", "stroke-width": 2 }));
+  // bar altezza onda, stesso trattamento del grafico vento
+  const barW = PLOT_W / n * 0.7;
+  for (let i = 0; i < n; i++) {
+    const cx = x(i);
+    const yTop = yH(heights[i]);
+    svgEl_.appendChild(svgElNS("rect", {
+      x: (cx - barW / 2).toFixed(1), y: yTop.toFixed(1),
+      width: barW.toFixed(1), height: (CHART_H - PAD_B - yTop).toFixed(1),
+      fill: "#4fd1c5", opacity: 0.75, rx: 1.5,
+    }));
+  }
 
-  // linea periodo (tratteggiata, azzurro ghiaccio)
-  const periodPts = periods.map((p, i) => [x(i), yP(p)]);
-  svgEl_.appendChild(svgElNS("path", { d: catmullRomPath(periodPts), fill: "none", stroke: "#9be3de", "stroke-width": 1.6, "stroke-dasharray": "5 4", opacity: 0.85 }));
+  // linea forza del mare, che interseca le bar
+  const forcePts = forces.map((f, i) => [x(i), yF(f)]);
+  svgEl_.appendChild(svgElNS("path", { d: catmullRomPath(forcePts), fill: "none", stroke: "#e0b84f", "stroke-width": 2, opacity: 0.9 }));
 
-  // etichette kJ luminose sui picchi
-  findPeaks(heights).forEach((i) => {
-    const px = x(i), py = yH(heights[i]);
-    const kj = chart[i].waveEnergyKJ;
-    if (kj == null || kj < 1) return; // mare piatto: evita etichette "0 kJ" rumorose
-    const label = svgElNS("text", {
-      x: px, y: py - 10, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600,
-      "font-size": 11, fill: "#f4fdfc", filter: "url(#glow)",
-    });
-    label.textContent = kj + " kJ";
-    svgEl_.appendChild(label);
-  });
-
+  // il periodo non ha una linea propria (con bar + forza il grafico è già
+  // denso): resta consultabile nel tooltip al passaggio del mouse.
   attachChartHover(svgEl_, chart, x, n);
 }
 
@@ -725,9 +697,10 @@ function attachChartHover(svg, chart, xFn, n) {
     const i = Math.min(n - 1, Math.max(0, Math.round(frac * (n - 1))));
     const p = chart[i];
     const d = new Date(p.time);
+    const force = p.waveHeightM != null ? classifySeaState(p.waveHeightM)[2] : "—";
     tip.innerHTML = `<b>${d.toLocaleDateString("it-IT", { weekday: "short" })} ${String(d.getHours()).padStart(2, "0")}:00</b><br>` +
-      `<span class="tip-accent">${p.waveHeightM ?? "—"} m</span> altezza<br>` +
-      `<span class="tip-soft">${p.wavePeriodS ?? "—"} s</span> periodo · ${p.waveEnergyKJ ?? "—"} kJ`;
+      `<span class="tip-accent">${p.waveHeightM ?? "—"} m</span> altezza · <span class="tip-soft">${force}</span><br>` +
+      `${p.wavePeriodS ?? "—"} s periodo · ${p.waveEnergyKJ ?? "—"} kJ`;
     tip.style.left = (xFn(i) / CHART_W) * rect.width + "px";
     tip.style.top = "0px";
     tip.classList.add("show");
@@ -860,8 +833,8 @@ function waveChartSectionHTML() {
     <section class="panel">
       <p class="panel-label" style="margin-bottom:4px">Mare — 7 giorni</p>
       <div class="chart-legend">
-        <span class="legend-item"><span class="legend-swatch" style="background:#4fd1c5"></span>Altezza onda</span>
-        <span class="legend-item"><span class="legend-swatch" style="background:#9be3de;opacity:.7"></span>Periodo</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#4fd1c5;height:8px;border-radius:2px;opacity:.75"></span>Altezza onda</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#e0b84f"></span>Forza mare</span>
       </div>
       <div class="wave-chart-wrap" id="waveChartWrap">
         <svg id="waveChartSvg"></svg>
