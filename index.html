@@ -147,7 +147,13 @@
      larghezza (quindi si vedono ~3.5 giorni alla volta, invece di tutti e
      7 rimpiccioliti) e il contenitore scorre in orizzontale per il resto. */
   @media (max-width: 640px) {
-    .wave-chart-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    /* touch-action: pan-x dichiara esplicitamente al browser che qui si
+       gestisce solo lo scroll orizzontale nativo — senza, su alcuni
+       browser mobili il gesto ambiguo (siamo dentro al pannello che
+       scorre in verticale, e ora anche il grafico scorre in orizzontale)
+       viene interpretato come "forse scroll" e il tap viene soppresso
+       del tutto invece di attivare il tooltip. */
+    .wave-chart-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x; }
     .wave-chart-wrap svg { width: 200%; }
   }
   .chart-tip { position: absolute; pointer-events: none; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px 9px; font-family: var(--font-data); font-size: 10.5px; color: var(--ink-bright); transform: translate(-50%, -110%); white-space: nowrap; opacity: 0; transition: opacity .1s; z-index: 5; line-height: 1.5; }
@@ -746,6 +752,13 @@ function attachChartHover(svg, chart, xFn, n) {
   // uscendo dal grafico.
   wrap.addEventListener("touchstart", (e) => { if (e.touches[0]) handleMove(e.touches[0].clientX); }, { passive: true });
   wrap.addEventListener("touchmove", (e) => { if (e.touches[0]) handleMove(e.touches[0].clientX); }, { passive: true });
+  // Rete di sicurezza: i Pointer Event unificano touch/mouse/penna e su
+  // molti browser mobili si comportano meglio dei Touch Event grezzi
+  // dentro contenitori scorrevoli annidati (niente ambiguità scroll-vs-tap
+  // che a volte sopprime del tutto touchstart/click).
+  if (window.PointerEvent) {
+    wrap.addEventListener("pointerdown", (e) => handleMove(e.clientX));
+  }
 }
 
 // Scala colore vento (kn), interpolata con continuità tra le fasce invece
@@ -852,6 +865,13 @@ function attachWindChartHover(svg, windChart, xFn, n) {
   // uscendo dal grafico.
   wrap.addEventListener("touchstart", (e) => { if (e.touches[0]) handleMove(e.touches[0].clientX); }, { passive: true });
   wrap.addEventListener("touchmove", (e) => { if (e.touches[0]) handleMove(e.touches[0].clientX); }, { passive: true });
+  // Rete di sicurezza: i Pointer Event unificano touch/mouse/penna e su
+  // molti browser mobili si comportano meglio dei Touch Event grezzi
+  // dentro contenitori scorrevoli annidati (niente ambiguità scroll-vs-tap
+  // che a volte sopprime del tutto touchstart/click).
+  if (window.PointerEvent) {
+    wrap.addEventListener("pointerdown", (e) => handleMove(e.clientX));
+  }
 }
 
 function windChartSectionHTML(days) {
