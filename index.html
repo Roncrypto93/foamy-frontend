@@ -142,6 +142,14 @@
 
   .wave-chart-wrap { position: relative; }
   .wave-chart-wrap svg { width: 100%; height: auto; display: block; }
+  /* Su schermi piccoli 56 punti/7 giorni compressi nella larghezza dello
+     schermo diventano illeggibili: qui il grafico raddoppia la sua
+     larghezza (quindi si vedono ~3.5 giorni alla volta, invece di tutti e
+     7 rimpiccioliti) e il contenitore scorre in orizzontale per il resto. */
+  @media (max-width: 640px) {
+    .wave-chart-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .wave-chart-wrap svg { width: 200%; }
+  }
   .chart-tip { position: absolute; pointer-events: none; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px 9px; font-family: var(--font-data); font-size: 10.5px; color: var(--ink-bright); transform: translate(-50%, -110%); white-space: nowrap; opacity: 0; transition: opacity .1s; z-index: 5; line-height: 1.5; }
   .chart-tip.show { opacity: 1; }
   .chart-tip .tip-accent { color: var(--accent); }
