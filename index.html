@@ -157,6 +157,10 @@
     background: linear-gradient(90deg, #fff 0%, #4fd1c5 18%, #86e08a 31%, #f2d94e 44%, #f2994e 60%, #e0524f 78%, #b06ae0 100%);
   }
 
+  .dir-strip { display: flex; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .dir-strip-cell { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--ink-bright); }
+  .dir-label { font-family: var(--font-data); font-size: 9.5px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .04em; }
+
   .lbl { font-family: var(--font-data); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-dim); margin: 0 0 3px; }
   .val-text, .desc-text { font-size: 13px; color: var(--ink); line-height: 1.5; margin: 0; }
   .desc-text { margin-top: 4px; }
@@ -370,6 +374,7 @@ async function fetchWeeklyDataFromOpenMeteo(spot) {
       windDir: wind.daily.wind_direction_10m_dominant[i],
       height: dHeight,
       period: marine?.daily?.wave_period_max?.[i] ?? null,
+      waveDir: marine?.daily?.wave_direction_dominant?.[i] ?? null,
       seaState: classifySeaState(dHeight),
       waterTemp: middayValue(marine?.hourly, "sea_surface_temperature", date),
       seaLevel: middayValue(marine?.hourly, "sea_level_height_msl", date),
@@ -395,6 +400,7 @@ async function fetchWeeklyData(spot) {
       windDir: d.wind.directionDeg,
       height: d.sea.waveHeightM,
       period: d.sea.wavePeriodS,
+      waveDir: d.sea.waveDirectionDeg,
       seaState: classifySeaState(d.sea.waveHeightM),
       waterTemp: d.sea.waterTempC,
       seaLevel: d.sea.seaLevelM,
@@ -446,13 +452,31 @@ function arrowSVG(deg, size, gap) {
   </div>`;
 }
 
-// waveDirectionDeg indica da dove arriva lo swell (convenzione oceanografica
-// standard tra i surfisti, es. "swell da SW") — qui, al contrario della
-// freccia del vento, si ruota senza aggiungere 180°: la freccina punta
-// proprio verso la direzione di provenienza.
-function waveDirChevronSVG(deg) {
+// Freccina di direzione generica (usata per swell, e per le strisce di
+// direzione sotto i grafici vento/onda): il chiamante passa già il grado
+// giusto da puntare — per il vento è "dove va" (+180 dalla convenzione
+// meteo grezza), per le onde è "da dove arriva" (grado grezzo, convenzione
+// oceanografica standard tra i surfisti, es. "swell da SW").
+function directionChevronSVG(deg) {
   if (deg == null) return "";
   return `<svg width="14" height="14" viewBox="0 0 16 16" style="transform:rotate(${deg - 90}deg);flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4,3 L12,8 L4,13"/></svg>`;
+}
+
+// Striscia di 7 celle (una per giorno) sotto un grafico, con la freccina di
+// direzione ben distanziata invece che incollata sopra ogni singola barra
+// del grafico a step di 3 ore. `getDeg(day)` restituisce già il grado
+// pronto da puntare (il chiamante decide la convenzione, vento vs onda).
+function directionStripHTML(days, getDeg) {
+  return `
+    <div class="dir-strip">
+      ${(days || []).map((d, i) => `
+        <div class="dir-strip-cell">
+          ${directionChevronSVG(getDeg(d)) || "—"}
+          <span class="dir-label">${dayLabel(d.date, i)}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 
 let state = { query: "", favoritesOnly: false };
@@ -574,7 +598,7 @@ function currentConditionsHTML(f) {
         </div>
         ${f.waveDir != null ? `
         <div class="swell-dir">
-          ${waveDirChevronSVG(f.waveDir)}
+          ${directionChevronSVG(f.waveDir)}
           <span>Swell da ${cardinal16(f.waveDir)} <span class="arrow-name">${classicalName(f.waveDir)}</span></span>
         </div>` : ""}
         ${f.backendUnreachable ? `<p class="notice notice--alert">⚠ Dati parziali al momento — solo il vento è disponibile.</p>`
@@ -777,14 +801,10 @@ function renderWindChart(svgEl_, windChart) {
       x1: (cx - barW / 2).toFixed(1), x2: (cx + barW / 2).toFixed(1),
       y1: gy.toFixed(1), y2: gy.toFixed(1), stroke: "#f4fdfc", "stroke-width": 2, opacity: 0.75,
     }));
-    const dir = windChart[i].windDirectionDeg;
-    if (dir != null) {
-      const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},20) rotate(${dir + 180})` });
-      g.appendChild(svgElNS("path", { d: "M0,-8 L-5,7 L0,3 L5,7 Z", fill: "#f4fdfc" }));
-      svgEl_.appendChild(g);
-    }
   }
 
+  // le freccette di direzione non stanno più qui (troppo fitte su 56 punti):
+  // vedi directionStripHTML, una per giorno, sotto il grafico.
   attachWindChartHover(svgEl_, windChart, x, n);
 }
 
@@ -812,7 +832,7 @@ function attachWindChartHover(svg, windChart, xFn, n) {
   wrap.addEventListener("touchend", () => tip.classList.remove("show"));
 }
 
-function windChartSectionHTML() {
+function windChartSectionHTML(days) {
   return `
     <section class="panel">
       <p class="panel-label" style="margin-bottom:4px">Vento — 7 giorni</p>
@@ -824,11 +844,12 @@ function windChartSectionHTML() {
         <svg id="windChartSvg"></svg>
         <div class="chart-tip"></div>
       </div>
+      ${directionStripHTML(days, (d) => (d.windDir != null ? d.windDir + 180 : null))}
     </section>
   `;
 }
 
-function waveChartSectionHTML() {
+function waveChartSectionHTML(days) {
   return `
     <section class="panel">
       <p class="panel-label" style="margin-bottom:4px">Mare — 7 giorni</p>
@@ -840,6 +861,7 @@ function waveChartSectionHTML() {
         <svg id="waveChartSvg"></svg>
         <div class="chart-tip"></div>
       </div>
+      ${directionStripHTML(days, (d) => d.waveDir)}
     </section>
   `;
 }
@@ -944,11 +966,11 @@ function openDrawer(spot) {
       `;
 
       fetchWeeklyData(spot)
-        .then(({ chart, windChart }) => {
+        .then(({ days, chart, windChart }) => {
           if (token !== openToken) return;
           document.getElementById("threeDaySection").innerHTML = `
-            ${windChartSectionHTML()}
-            ${waveChartSectionHTML()}
+            ${windChartSectionHTML(days)}
+            ${waveChartSectionHTML(days)}
           `;
           renderWindChart(document.getElementById("windChartSvg"), windChart || []);
           renderWaveChart(document.getElementById("waveChartSvg"), chart);
