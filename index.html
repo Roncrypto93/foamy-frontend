@@ -74,10 +74,11 @@
   .spot-card-name { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--ink-bright); line-height: 1.25; }
   .spot-card-badges { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-top: 2px; }
   .webcam-badge { display: inline-flex; color: var(--accent); }
-  .spot-card-fav { display: inline-flex; color: var(--ink-dim); cursor: pointer; }
-  .spot-card-fav:hover { color: var(--accent-soft); }
+  .spot-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+  .spot-card-fav { display: inline-flex; align-items: center; justify-content: center; color: var(--ink-dim); cursor: pointer; padding: 4px; margin: -4px; border-radius: 50%; }
+  .spot-card-fav:hover { color: var(--accent-soft); background: var(--surface-2); }
   .spot-card-fav.is-active { color: var(--sun); }
-  .spot-card-cta { font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); margin-top: 10px; }
+  .spot-card-cta { font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); }
   .spot-card:hover .spot-card-cta { color: var(--accent); }
 
   #emptyState { text-align: center; padding: 60px 0; }
@@ -478,10 +479,12 @@ function spotCard(spot) {
       <span class="spot-card-name">${spot.name}</span>
       <span class="spot-card-badges">
         ${spot.webcam_banner ? `<span class="webcam-badge" title="Webcam disponibile">${CAMERA_ICON_SVG}</span>` : ""}
-        <span class="spot-card-fav ${isFavorite(spot.id) ? "is-active" : ""}" role="button" aria-label="Preferito" title="Aggiungi ai preferiti">${starIconSVG(isFavorite(spot.id))}</span>
       </span>
     </div>
-    <p class="spot-card-cta">Vedi condizioni live →</p>
+    <div class="spot-card-foot">
+      <p class="spot-card-cta">Vedi condizioni live →</p>
+      <span class="spot-card-fav ${isFavorite(spot.id) ? "is-active" : ""}" role="button" aria-label="Preferito" title="Aggiungi ai preferiti">${starIconSVG(isFavorite(spot.id))}</span>
+    </div>
   `;
   card.onclick = (e) => {
     if (e.target.closest(".spot-card-fav")) {
