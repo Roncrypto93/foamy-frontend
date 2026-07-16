@@ -412,6 +412,20 @@ async function fetchWeeklyData(spot) {
   }
 }
 
+// Marea (Copernicus Marine SSH, aggiornata al più una volta al giorno lato
+// backend) e temperatura dell'acqua (Open-Meteo, al più ogni 12 ore). Niente
+// fallback diretto: la marea non ha un equivalente pubblico senza le
+// credenziali Copernicus, quindi se il backend non risponde si mostra
+// semplicemente "non disponibile" invece di un dato improvvisato.
+async function fetchTideData(spot) {
+  const data = await fetchJSON(`${API_BASE}/api/forecast/${spot.id}/tide`, 60000);
+  return {
+    waterTemp: data.water_temp ?? null,
+    currentLevel: data.tide?.current_level ?? null,
+    trend: data.tide?.trend ?? null,
+  };
+}
+
 const CARDINAL_16 = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
 const CLASSICAL_8 = ["Tramontana","Grecale","Levante","Scirocco","Ostro","Libeccio","Ponente","Maestrale"];
 function cardinal16(deg) { return CARDINAL_16[Math.round(deg / 22.5) % 16]; }
@@ -857,16 +871,28 @@ function waveChartSectionHTML() {
   `;
 }
 
-function spotInfoHTML(spot) {
-  const info = spot.spot_info;
-  if (!info) return "";
+const THERMOMETER_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>';
+
+function tideContentHTML(tide) {
+  const trendLabel = tide.trend === "rising" ? "in salita" : tide.trend === "falling" ? "in discesa" : "";
+  const levelText = tide.currentLevel != null ? `${tide.currentLevel >= 0 ? "+" : ""}${tide.currentLevel} m` : "—";
   return `
-    <section class="panel">
-      <p class="panel-label">Info spot</p>
-      <p class="lbl">Fondale</p>
-      <p class="val-text" style="margin-bottom:10px">${info.fondale}</p>
-      <p class="desc-text">${info.descrizione_tecnica}</p>
-    </section>
+    <div class="water-widget" style="margin-top:0;padding-top:0;border-top:none">
+      <div class="water-item">
+        <span class="water-icon">${THERMOMETER_ICON_SVG}</span>
+        <div>
+          <div class="val tabular">${tide.waterTemp ?? "—"}°C</div>
+          <div class="lbl">Temperatura acqua</div>
+        </div>
+      </div>
+      <div class="water-item">
+        <span class="water-icon tide-trend ${tide.trend || ""}">${tideArrowSVG(tide.trend === "rising")}</span>
+        <div>
+          <div class="val tabular">${levelText}</div>
+          <div class="lbl">Marea${trendLabel ? " " + trendLabel : ""}</div>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -938,7 +964,9 @@ function openDrawer(spot) {
         <div id="threeDaySection">
           <p class="footer-ts" style="padding:20px 0">Caricamento previsioni 7 giorni…</p>
         </div>
-        ${spotInfoHTML(spot)}
+        <div id="tideSection">
+          <p class="footer-ts" style="padding:20px 0">Caricamento marea e temperatura acqua…</p>
+        </div>
         ${webcamAndFooterHTML(spot)}
       `;
 
@@ -955,6 +983,26 @@ function openDrawer(spot) {
         .catch(() => {
           if (token !== openToken) return;
           document.getElementById("threeDaySection").innerHTML = `<p class="footer-ts" style="padding:20px 0">Previsioni 7 giorni non disponibili al momento.</p>`;
+        });
+
+      fetchTideData(spot)
+        .then((tide) => {
+          if (token !== openToken) return;
+          document.getElementById("tideSection").innerHTML = `
+            <section class="panel">
+              <p class="panel-label" style="margin-bottom:4px">Marea e temperatura dell'acqua</p>
+              ${tideContentHTML(tide)}
+            </section>
+          `;
+        })
+        .catch(() => {
+          if (token !== openToken) return;
+          document.getElementById("tideSection").innerHTML = `
+            <section class="panel">
+              <p class="panel-label" style="margin-bottom:4px">Marea e temperatura dell'acqua</p>
+              <p class="footer-ts" style="text-align:left;padding:8px 0">Dato non disponibile al momento.</p>
+            </section>
+          `;
         });
     })
     .catch(() => {
