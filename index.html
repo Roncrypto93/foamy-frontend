@@ -718,7 +718,10 @@ function attachChartHover(svg, chart, xFn, n) {
   const tip = wrap.querySelector(".chart-tip");
   if (!tip) return;
   function handleMove(clientX) {
-    const rect = wrap.getBoundingClientRect();
+    // Usiamo il rect dell'svg, non quello di wrap: da mobile wrap scorre
+    // in orizzontale ed è più stretto dell'svg (200%), quindi le sue
+    // dimensioni non corrispondono più al chart effettivamente disegnato.
+    const rect = svg.getBoundingClientRect();
     const relX = clientX - rect.left;
     const frac = Math.min(1, Math.max(0, (relX - (PAD_L / CHART_W) * rect.width) / (((CHART_W - PAD_L - PAD_R) / CHART_W) * rect.width)));
     const i = Math.min(n - 1, Math.max(0, Math.round(frac * (n - 1))));
@@ -816,7 +819,9 @@ function attachWindChartHover(svg, windChart, xFn, n) {
   const tip = wrap.querySelector(".chart-tip");
   if (!tip) return;
   function handleMove(clientX) {
-    const rect = wrap.getBoundingClientRect();
+    // Vedi commento nella versione onda: da mobile serve il rect dell'svg,
+    // non quello di wrap (che scorre ed è più stretto dell'svg al 200%).
+    const rect = svg.getBoundingClientRect();
     const relX = clientX - rect.left;
     const frac = Math.min(1, Math.max(0, (relX - (PAD_L / CHART_W) * rect.width) / (((CHART_W - PAD_L - PAD_R) / CHART_W) * rect.width)));
     const i = Math.min(n - 1, Math.max(0, Math.round(frac * (n - 1))));
