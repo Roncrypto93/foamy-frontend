@@ -156,10 +156,6 @@
     background: linear-gradient(90deg, #fff 0%, #4fd1c5 18%, #86e08a 31%, #f2d94e 44%, #f2994e 60%, #e0524f 78%, #b06ae0 100%);
   }
 
-  .sea-force-strip { display: flex; margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--border); }
-  .sea-force-cell { flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 5px; font-family: var(--font-data); font-size: 9.5px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .04em; text-align: center; }
-  .sea-force-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-
   .lbl { font-family: var(--font-data); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-dim); margin: 0 0 3px; }
   .val-text, .desc-text { font-size: 13px; color: var(--ink); line-height: 1.5; margin: 0; }
   .desc-text { margin-top: 4px; }
@@ -420,12 +416,15 @@ function cardinal16(deg) { return CARDINAL_16[Math.round(deg / 22.5) % 16]; }
 function classicalName(deg) { return CLASSICAL_8[Math.round(deg / 45) % 8]; }
 
 function arrowSVG(deg, size, gap) {
+  // windDirectionDeg è la direzione da cui soffia il vento (convenzione
+  // meteo); la freccia deve invece puntare verso dove il vento sta andando,
+  // quindi si ruota di 180° in più.
+  const pointDeg = deg + 180;
   return `
   <div class="arrow-widget" style="width:${size}px;gap:${gap ?? 6}px">
     <svg width="${size}" height="${size}" viewBox="0 0 80 80" role="img" aria-label="Direzione del vento">
-      <g class="needle" style="--needle-deg:${deg}deg; transform: rotate(${deg}deg)">
-        <path d="M40,6 L28,46 L40,36 L52,46 Z" fill="#f4fdfc"/>
-        <rect x="37.5" y="36" width="5" height="30" fill="#f4fdfc"/>
+      <g class="needle" style="--needle-deg:${pointDeg}deg; transform: rotate(${pointDeg}deg)">
+        <path d="M40,4 L16,34 L31,34 L31,72 L49,72 L49,34 L64,34 Z" fill="#f4fdfc"/>
       </g>
     </svg>
   </div>`;
@@ -755,12 +754,6 @@ function renderWindChart(svgEl_, windChart) {
   const x = (i) => PAD_L + (i / (n - 1)) * PLOT_W;
   const y = (v) => WIND_PAD_T + plotH - (v / max) * plotH;
 
-  const defs = svgElNS("defs", {});
-  const glow = svgElNS("filter", { id: "windGlow", x: "-60%", y: "-60%", width: "220%", height: "220%" });
-  glow.innerHTML = '<feGaussianBlur stdDeviation="2.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>';
-  defs.appendChild(glow);
-  svgEl_.appendChild(defs);
-
   [0, 0.5, 1].forEach((f) => {
     const yy = WIND_PAD_T + plotH * (1 - f);
     svgEl_.appendChild(svgElNS("line", { x1: PAD_L, x2: CHART_W - PAD_R, y1: yy, y2: yy, stroke: "rgba(222,242,241,0.06)", "stroke-width": 1 }));
@@ -783,22 +776,11 @@ function renderWindChart(svgEl_, windChart) {
     }));
     const dir = windChart[i].windDirectionDeg;
     if (dir != null) {
-      const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},20) rotate(${dir})` });
+      const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},20) rotate(${dir + 180})` });
       g.appendChild(svgElNS("path", { d: "M0,-8 L-5,7 L0,3 L5,7 Z", fill: "#f4fdfc" }));
       svgEl_.appendChild(g);
     }
   }
-
-  // etichette kn luminose sui picchi di velocità (stesso trattamento dei kJ nel grafico onda)
-  findPeaks(speeds).forEach((i) => {
-    if (speeds[i] < 1) return;
-    const label = svgElNS("text", {
-      x: x(i), y: y(speeds[i]) - 10, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600,
-      "font-size": 12, fill: "#f4fdfc", filter: "url(#windGlow)",
-    });
-    label.textContent = round(speeds[i], 0) + " kn";
-    svgEl_.appendChild(label);
-  });
 
   attachWindChartHover(svgEl_, windChart, x, n);
 }
@@ -843,7 +825,7 @@ function windChartSectionHTML() {
   `;
 }
 
-function waveChartSectionHTML(days) {
+function waveChartSectionHTML() {
   return `
     <section class="panel">
       <p class="panel-label" style="margin-bottom:4px">Mare — 7 giorni</p>
@@ -854,14 +836,6 @@ function waveChartSectionHTML(days) {
       <div class="wave-chart-wrap" id="waveChartWrap">
         <svg id="waveChartSvg"></svg>
         <div class="chart-tip"></div>
-      </div>
-      <div class="sea-force-strip">
-        ${(days || []).map(d => `
-          <div class="sea-force-cell" title="${d.seaState[0]}">
-            <span class="sea-force-dot" style="background:${d.seaState[1]}"></span>
-            <span>${d.seaState[2]}</span>
-          </div>
-        `).join("")}
       </div>
     </section>
   `;
@@ -953,11 +927,11 @@ function openDrawer(spot) {
       `;
 
       fetchWeeklyData(spot)
-        .then(({ days, chart, windChart }) => {
+        .then(({ chart, windChart }) => {
           if (token !== openToken) return;
           document.getElementById("threeDaySection").innerHTML = `
             ${windChartSectionHTML()}
-            ${waveChartSectionHTML(days)}
+            ${waveChartSectionHTML()}
           `;
           renderWindChart(document.getElementById("windChartSvg"), windChart || []);
           renderWaveChart(document.getElementById("waveChartSvg"), chart);
