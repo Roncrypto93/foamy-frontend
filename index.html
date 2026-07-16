@@ -72,12 +72,12 @@
   .spot-card:hover { border-color: var(--accent); background: var(--surface-2); }
   .spot-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
   .spot-card-name { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--ink-bright); line-height: 1.25; }
-  .spot-card-coast { font-family: var(--font-data); font-size: 10px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; padding-top: 2px; }
-  .spot-card-badges { display: flex; align-items: center; gap: 6px; flex-shrink: 0; padding-top: 2px; }
+  .spot-card-badges { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-top: 2px; }
   .webcam-badge { display: inline-flex; color: var(--accent); }
-  .disc-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
-  .disc-pill { font-family: var(--font-data); font-size: 10px; text-transform: uppercase; letter-spacing: .05em; padding: 2px 7px; border-radius: 20px; background: var(--accent-wash); color: var(--accent); border: 1px solid rgba(79,209,197,0.25); }
-  .spot-card-cta { font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); }
+  .spot-card-fav { display: inline-flex; color: var(--ink-dim); cursor: pointer; }
+  .spot-card-fav:hover { color: var(--accent-soft); }
+  .spot-card-fav.is-active { color: var(--sun); }
+  .spot-card-cta { font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); margin-top: 10px; }
   .spot-card:hover .spot-card-cta { color: var(--accent); }
 
   #emptyState { text-align: center; padding: 60px 0; }
@@ -158,6 +158,10 @@
     background: linear-gradient(90deg, #fff 0%, #4fd1c5 18%, #86e08a 31%, #f2d94e 44%, #f2994e 60%, #e0524f 78%, #b06ae0 100%);
   }
 
+  .sea-force-strip { display: flex; margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .sea-force-cell { flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 5px; font-family: var(--font-data); font-size: 9.5px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .04em; text-align: center; }
+  .sea-force-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
   .lbl { font-family: var(--font-data); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-dim); margin: 0 0 3px; }
   .val-text, .desc-text { font-size: 13px; color: var(--ink); line-height: 1.5; margin: 0; }
   .desc-text { margin-top: 4px; }
@@ -188,9 +192,8 @@
     <div class="filters">
       <div class="search-row">
         <input id="search" class="search-input" type="text" placeholder="Cerca spot…" autocomplete="off" />
-        <div class="chip-row" id="coastChips"></div>
+        <div class="chip-row" id="favBar"></div>
       </div>
-      <div class="chip-row" id="disciplineChips"></div>
     </div>
   </header>
 
@@ -433,10 +436,19 @@ function arrowSVG(deg, size, gap) {
   </div>`;
 }
 
-const DISCIPLINE_LABELS = { wave: "Wave", wind: "Wind", kite: "Kite" };
-const COASTS = ["Tutti", "Adriatico", "Ionio", "Gargano"];
-const DISCIPLINES = [{k:"all",l:"Tutti"},{k:"wave",l:"Wave"},{k:"wind",l:"Wind"},{k:"kite",l:"Kite"}];
-let state = { coast: "Tutti", discipline: "all", query: "" };
+let state = { query: "", favoritesOnly: false };
+
+const FAV_KEY = "foamy_favorites";
+function getFavorites() {
+  try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY) || "[]")); }
+  catch { return new Set(); }
+}
+function isFavorite(id) { return getFavorites().has(id); }
+function toggleFavorite(id) {
+  const favs = getFavorites();
+  if (favs.has(id)) favs.delete(id); else favs.add(id);
+  localStorage.setItem(FAV_KEY, JSON.stringify([...favs]));
+}
 
 function chipBtn(label, active, onClick) {
   const btn = document.createElement("button");
@@ -448,14 +460,15 @@ function chipBtn(label, active, onClick) {
 }
 
 function renderChips() {
-  const coastEl = document.getElementById("coastChips");
-  const discEl = document.getElementById("disciplineChips");
-  coastEl.innerHTML = ""; discEl.innerHTML = "";
-  COASTS.forEach((c) => coastEl.appendChild(chipBtn(c, state.coast === c, () => { state.coast = c; render(); })));
-  DISCIPLINES.forEach((d) => discEl.appendChild(chipBtn(d.l, state.discipline === d.k, () => { state.discipline = d.k; render(); })));
+  const favEl = document.getElementById("favBar");
+  favEl.innerHTML = "";
+  favEl.appendChild(chipBtn("★ Preferiti", state.favoritesOnly, () => { state.favoritesOnly = !state.favoritesOnly; render(); }));
 }
 
 const CAMERA_ICON_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 8h4l2 3v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h4l2-3h4l2 3Z"/><circle cx="12" cy="14" r="3.2"/></svg>';
+function starIconSVG(filled) {
+  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="${filled ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 17.6l-5.9 3.1 1.2-6.6-4.8-4.6 6.6-.9L12 2.5z"/></svg>`;
+}
 
 function spotCard(spot) {
   const card = document.createElement("button");
@@ -465,15 +478,20 @@ function spotCard(spot) {
       <span class="spot-card-name">${spot.name}</span>
       <span class="spot-card-badges">
         ${spot.webcam_banner ? `<span class="webcam-badge" title="Webcam disponibile">${CAMERA_ICON_SVG}</span>` : ""}
-        <span class="spot-card-coast">${spot.coast}</span>
+        <span class="spot-card-fav ${isFavorite(spot.id) ? "is-active" : ""}" role="button" aria-label="Preferito" title="Aggiungi ai preferiti">${starIconSVG(isFavorite(spot.id))}</span>
       </span>
-    </div>
-    <div class="disc-row">
-      ${spot.disciplines.map(d => `<span class="disc-pill">${DISCIPLINE_LABELS[d] || d}</span>`).join("")}
     </div>
     <p class="spot-card-cta">Vedi condizioni live →</p>
   `;
-  card.onclick = () => openDrawer(spot);
+  card.onclick = (e) => {
+    if (e.target.closest(".spot-card-fav")) {
+      e.stopPropagation();
+      toggleFavorite(spot.id);
+      render();
+      return;
+    }
+    openDrawer(spot);
+  };
   return card;
 }
 
@@ -484,9 +502,8 @@ function render() {
   grid.innerHTML = "";
   const q = state.query.trim().toLowerCase();
   const filtered = SPOTS.filter(s =>
-    (state.coast === "Tutti" || s.coast === state.coast) &&
-    (state.discipline === "all" || s.disciplines.includes(state.discipline)) &&
-    (!q || s.name.toLowerCase().includes(q))
+    (!q || s.name.toLowerCase().includes(q)) &&
+    (!state.favoritesOnly || isFavorite(s.id))
   ).sort((a, b) => a.name.localeCompare(b.name, "it"));
   if (filtered.length === 0) {
     grid.style.display = "none";
@@ -497,7 +514,7 @@ function render() {
     filtered.forEach(s => grid.appendChild(spotCard(s)));
   }
 }
-document.getElementById("resetFilters").onclick = () => { state.coast = "Tutti"; state.discipline = "all"; state.query = ""; document.getElementById("search").value = ""; render(); };
+document.getElementById("resetFilters").onclick = () => { state.query = ""; state.favoritesOnly = false; document.getElementById("search").value = ""; render(); };
 document.getElementById("search").addEventListener("input", (e) => { state.query = e.target.value; render(); });
 
 function closeDrawer() { document.getElementById("drawerRoot").innerHTML = ""; document.removeEventListener("keydown", escHandler); }
@@ -579,7 +596,7 @@ function findPeaks(values) {
   return peaks.slice(0, 7);
 }
 
-const CHART_W = 640, CHART_H = 200, PAD_L = 6, PAD_R = 6, PAD_T = 36, PAD_B = 22;
+const CHART_W = 640, CHART_H = 200, WIND_CHART_H = 260, PAD_L = 6, PAD_R = 6, PAD_T = 36, PAD_B = 22;
 const PLOT_W = CHART_W - PAD_L - PAD_R, PLOT_H = CHART_H - PAD_T - PAD_B;
 
 // Separatori e etichette giorno per un grafico a step di 3 ore, per un
@@ -587,7 +604,7 @@ const PLOT_W = CHART_W - PAD_L - PAD_R, PLOT_H = CHART_H - PAD_T - PAD_B;
 // da quello onde, così le etichette restano identiche e generano da un solo
 // posto invece di due copie che potrebbero disallinearsi.
 const POINTS_PER_DAY = 8; // 24h / 3h
-function renderDayBoundaries(svgEl_, x, points, padTop, padBottom, chartH) {
+function renderDayBoundaries(svgEl_, x, points, padTop, padBottom, chartH, fontSize) {
   const totalDays = Math.max(1, Math.round(points.length / POINTS_PER_DAY));
   for (let d = 1; d < totalDays; d++) {
     const xd = x(d * POINTS_PER_DAY);
@@ -596,7 +613,7 @@ function renderDayBoundaries(svgEl_, x, points, padTop, padBottom, chartH) {
   for (let d = 0; d < totalDays; d++) {
     const idx = Math.min(d * POINTS_PER_DAY + Math.floor(POINTS_PER_DAY / 2), points.length - 1);
     const dateStr = points[idx].time.slice(0, 10);
-    const lblEl = svgElNS("text", { x: x(d * POINTS_PER_DAY + POINTS_PER_DAY / 2), y: chartH - 6, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 9.5, fill: "#6b8583" });
+    const lblEl = svgElNS("text", { x: x(d * POINTS_PER_DAY + POINTS_PER_DAY / 2), y: chartH - 6, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": fontSize || 9.5, fill: "#6b8583" });
     lblEl.textContent = dayLabel(dateStr, d);
     svgEl_.appendChild(lblEl);
   }
@@ -722,12 +739,12 @@ function windColor(kn) {
 function lerpRgb(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; }
 function rgbCss(rgb) { return `rgb(${Math.round(rgb[0])},${Math.round(rgb[1])},${Math.round(rgb[2])})`; }
 
-const WIND_PAD_T = 34;
+const WIND_PAD_T = 42;
 function renderWindChart(svgEl_, windChart) {
   svgEl_.innerHTML = "";
-  svgEl_.setAttribute("viewBox", `0 0 ${CHART_W} ${CHART_H}`);
+  svgEl_.setAttribute("viewBox", `0 0 ${CHART_W} ${WIND_CHART_H}`);
   if (!windChart.length) {
-    const t = svgElNS("text", { x: CHART_W / 2, y: CHART_H / 2, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 11, fill: "#6b8583" });
+    const t = svgElNS("text", { x: CHART_W / 2, y: WIND_CHART_H / 2, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 12, fill: "#6b8583" });
     t.textContent = "Dati vento non disponibili";
     svgEl_.appendChild(t);
     return;
@@ -736,38 +753,55 @@ function renderWindChart(svgEl_, windChart) {
   const speeds = windChart.map(p => p.windSpeedKn ?? 0);
   const gusts = windChart.map(p => p.windGustsKn ?? 0);
   const max = Math.max(5, ...gusts) * 1.15;
-  const plotBottom = CHART_H - PAD_B;
+  const plotBottom = WIND_CHART_H - PAD_B;
   const plotH = plotBottom - WIND_PAD_T;
   const x = (i) => PAD_L + (i / (n - 1)) * PLOT_W;
   const y = (v) => WIND_PAD_T + plotH - (v / max) * plotH;
+
+  const defs = svgElNS("defs", {});
+  const glow = svgElNS("filter", { id: "windGlow", x: "-60%", y: "-60%", width: "220%", height: "220%" });
+  glow.innerHTML = '<feGaussianBlur stdDeviation="2.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>';
+  defs.appendChild(glow);
+  svgEl_.appendChild(defs);
 
   [0, 0.5, 1].forEach((f) => {
     const yy = WIND_PAD_T + plotH * (1 - f);
     svgEl_.appendChild(svgElNS("line", { x1: PAD_L, x2: CHART_W - PAD_R, y1: yy, y2: yy, stroke: "rgba(222,242,241,0.06)", "stroke-width": 1 }));
   });
-  renderDayBoundaries(svgEl_, x, windChart, WIND_PAD_T, PAD_B, CHART_H);
+  renderDayBoundaries(svgEl_, x, windChart, WIND_PAD_T, PAD_B, WIND_CHART_H, 11);
 
-  const barW = PLOT_W / n * 0.55;
+  const barW = PLOT_W / n * 0.7;
   for (let i = 0; i < n; i++) {
     const cx = x(i);
     const yTop = y(speeds[i]);
     svgEl_.appendChild(svgElNS("rect", {
       x: (cx - barW / 2).toFixed(1), y: yTop.toFixed(1),
       width: barW.toFixed(1), height: (plotBottom - yTop).toFixed(1),
-      fill: windColor(speeds[i]), opacity: 0.85, rx: 1.2,
+      fill: windColor(speeds[i]), opacity: 0.85, rx: 1.5,
     }));
     const gy = y(gusts[i]);
     svgEl_.appendChild(svgElNS("line", {
       x1: (cx - barW / 2).toFixed(1), x2: (cx + barW / 2).toFixed(1),
-      y1: gy.toFixed(1), y2: gy.toFixed(1), stroke: "#f4fdfc", "stroke-width": 1.5, opacity: 0.75,
+      y1: gy.toFixed(1), y2: gy.toFixed(1), stroke: "#f4fdfc", "stroke-width": 2, opacity: 0.75,
     }));
     const dir = windChart[i].windDirectionDeg;
     if (dir != null) {
-      const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},16) rotate(${dir})` });
-      g.appendChild(svgElNS("path", { d: "M0,-6 L-4,5 L0,2 L4,5 Z", fill: "#f4fdfc" }));
+      const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},20) rotate(${dir})` });
+      g.appendChild(svgElNS("path", { d: "M0,-8 L-5,7 L0,3 L5,7 Z", fill: "#f4fdfc" }));
       svgEl_.appendChild(g);
     }
   }
+
+  // etichette kn luminose sui picchi di velocità (stesso trattamento dei kJ nel grafico onda)
+  findPeaks(speeds).forEach((i) => {
+    if (speeds[i] < 1) return;
+    const label = svgElNS("text", {
+      x: x(i), y: y(speeds[i]) - 10, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600,
+      "font-size": 12, fill: "#f4fdfc", filter: "url(#windGlow)",
+    });
+    label.textContent = round(speeds[i], 0) + " kn";
+    svgEl_.appendChild(label);
+  });
 
   attachWindChartHover(svgEl_, windChart, x, n);
 }
@@ -800,7 +834,7 @@ function windChartSectionHTML() {
   return `
     <section class="panel">
       <p class="panel-label" style="margin-bottom:4px">Vento — 7 giorni</p>
-      <div class="chart-legend">
+      <div class="chart-legend" style="font-size:12px">
         <span class="legend-item"><span class="legend-swatch legend-swatch--gradient"></span>Velocità (kn)</span>
         <span class="legend-item"><span class="legend-swatch" style="background:#f4fdfc;opacity:.75"></span>Raffiche</span>
       </div>
@@ -812,7 +846,7 @@ function windChartSectionHTML() {
   `;
 }
 
-function waveChartSectionHTML() {
+function waveChartSectionHTML(days) {
   return `
     <section class="panel">
       <p class="panel-label" style="margin-bottom:4px">Mare — 7 giorni</p>
@@ -823,6 +857,14 @@ function waveChartSectionHTML() {
       <div class="wave-chart-wrap" id="waveChartWrap">
         <svg id="waveChartSvg"></svg>
         <div class="chart-tip"></div>
+      </div>
+      <div class="sea-force-strip">
+        ${(days || []).map(d => `
+          <div class="sea-force-cell" title="${d.seaState[0]}">
+            <span class="sea-force-dot" style="background:${d.seaState[1]}"></span>
+            <span>${d.seaState[2]}</span>
+          </div>
+        `).join("")}
       </div>
     </section>
   `;
@@ -914,11 +956,11 @@ function openDrawer(spot) {
       `;
 
       fetchWeeklyData(spot)
-        .then(({ chart, windChart }) => {
+        .then(({ days, chart, windChart }) => {
           if (token !== openToken) return;
           document.getElementById("threeDaySection").innerHTML = `
             ${windChartSectionHTML()}
-            ${waveChartSectionHTML()}
+            ${waveChartSectionHTML(days)}
           `;
           renderWindChart(document.getElementById("windChartSvg"), windChart || []);
           renderWaveChart(document.getElementById("waveChartSvg"), chart);
