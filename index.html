@@ -126,9 +126,6 @@
   .kj-readout .val { font-family: var(--font-data); font-weight: 600; font-size: 22px; color: var(--ink-bright); }
   .kj-readout .lbl { font-family: var(--font-data); font-size: 10px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .1em; }
   .swell-dir { display: flex; align-items: center; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-family: var(--font-data); font-size: 12px; font-weight: 600; color: var(--ink-bright); }
-  .notice { font-family: var(--font-data); font-size: 10.5px; border-radius: 6px; padding: 7px 10px; margin-top: 12px; }
-  .notice--alert { color: var(--alert); background: rgba(224,82,79,0.1); border: 1px solid rgba(224,82,79,0.3); }
-  .notice--sun { color: var(--sun); background: rgba(224,184,79,0.1); border: 1px solid rgba(224,184,79,0.3); }
 
   .water-widget { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; gap: 20px; flex-wrap: wrap; }
   .water-item { display: flex; align-items: center; gap: 8px; }
@@ -601,8 +598,6 @@ function currentConditionsHTML(f) {
           ${directionChevronSVG(f.waveDir)}
           <span>Swell da ${cardinal16(f.waveDir)} <span class="arrow-name">${classicalName(f.waveDir)}</span></span>
         </div>` : ""}
-        ${f.backendUnreachable ? `<p class="notice notice--alert">⚠ Dati parziali al momento — solo il vento è disponibile.</p>`
-          : f.degraded ? `<p class="notice notice--sun">⚠ Dato onda con precisione ridotta in questo momento.</p>` : ""}
       </section>
     </div>
   `;
@@ -913,7 +908,7 @@ function webcamSectionHTML(spot) {
       ${isVideo ? `
       <video class="webcam-video" src="${cam.url}" controls preload="none" playsinline style="width:100%;border-radius:8px;margin-top:12px;background:#000"></video>
       ` : ""}
-      ${cam.note ? `<p class="notice notice--sun">⚠ ${cam.note}</p>` : ""}
+      ${cam.note ? `<p class="footer-ts" style="text-align:left;padding-top:10px;margin:0">${cam.note}</p>` : ""}
     </section>`;
 }
 
@@ -1002,7 +997,7 @@ function openDrawer(spot) {
     })
     .catch(() => {
       if (token !== openToken) return;
-      document.getElementById("drawerBody").innerHTML = `<p class="footer-ts" style="padding:48px 0;color:var(--alert)">⚠ Impossibile recuperare i dati meteo-mare in questo momento.<br>Riprova più tardi.</p>`;
+      document.getElementById("drawerBody").innerHTML = `<p class="footer-ts" style="padding:48px 0">Dati meteo-mare non disponibili al momento.</p>`;
     });
 }
 
