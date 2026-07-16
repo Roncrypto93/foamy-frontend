@@ -156,6 +156,10 @@
     .wave-chart-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x; }
     .wave-chart-wrap svg { width: 200%; }
   }
+  /* Grafico marea: solo 24 punti (un giorno), niente bisogno dello scroll
+     orizzontale riservato ai grafici a 7 giorni — classe separata apposta. */
+  .tide-chart-wrap { position: relative; }
+  .tide-chart-wrap svg { width: 100%; height: auto; display: block; }
   .chart-tip { position: absolute; pointer-events: none; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px 9px; font-family: var(--font-data); font-size: 10.5px; color: var(--ink-bright); transform: translate(-50%, -110%); white-space: nowrap; opacity: 0; transition: opacity .1s; z-index: 5; line-height: 1.5; }
   .chart-tip.show { opacity: 1; }
   .chart-tip .tip-accent { color: var(--accent); }
@@ -461,6 +465,7 @@ async function fetchTideData(spot) {
     waterTemp: data.water_temp ?? null,
     currentLevel: data.tide?.current_level ?? null,
     trend: data.tide?.trend ?? null,
+    hourlyForecast: Array.isArray(data.tide?.hourly_forecast) ? data.tide.hourly_forecast : [],
   };
 }
 
@@ -950,6 +955,7 @@ const THERMOMETER_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fi
 function tideContentHTML(tide) {
   const trendLabel = tide.trend === "rising" ? "in salita" : tide.trend === "falling" ? "in discesa" : "";
   const levelText = tide.currentLevel != null ? `${tide.currentLevel >= 0 ? "+" : ""}${tide.currentLevel} m` : "—";
+  const hasChart = Array.isArray(tide.hourlyForecast) && tide.hourlyForecast.length > 0;
   return `
     <div class="water-widget" style="margin-top:0;padding-top:0;border-top:none">
       <div class="water-item">
@@ -967,7 +973,87 @@ function tideContentHTML(tide) {
         </div>
       </div>
     </div>
+    ${hasChart ? `
+    <div class="chart-legend" style="margin-top:14px">
+      <span class="legend-item"><span class="legend-swatch" style="background:#4fd1c5;border-radius:50%;width:7px;height:7px"></span>Alta marea</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:#9be3de;border-radius:50%;width:7px;height:7px"></span>Bassa marea</span>
+    </div>
+    <div class="tide-chart-wrap" id="tideChartWrap">
+      <svg id="tideChartSvg"></svg>
+    </div>` : ""}
   `;
+}
+
+// Trova i minimi/massimi locali (alta/bassa marea) su 24 punti orari: stesso
+// approccio "finestra minima tra due punti" già usato altrove nel sito per
+// non segnalare come picchi separati due punti adiacenti quasi identici.
+function findTideExtremes(values, isBetter, minGap) {
+  const result = [];
+  for (let i = 1; i < values.length - 1; i++) {
+    if (isBetter(values[i], values[i - 1]) && isBetter(values[i], values[i + 1])) {
+      if (result.length && i - result[result.length - 1] < minGap) {
+        if (isBetter(values[i], values[result[result.length - 1]])) result[result.length - 1] = i;
+      } else {
+        result.push(i);
+      }
+    }
+  }
+  return result;
+}
+
+const TIDE_CHART_W = 640, TIDE_CHART_H = 150, TIDE_PAD_L = 6, TIDE_PAD_R = 6, TIDE_PAD_T = 26, TIDE_PAD_B = 22;
+const TIDE_PLOT_W = TIDE_CHART_W - TIDE_PAD_L - TIDE_PAD_R, TIDE_PLOT_H = TIDE_CHART_H - TIDE_PAD_T - TIDE_PAD_B;
+
+function renderTideChart(svgEl_, hourly) {
+  svgEl_.innerHTML = "";
+  svgEl_.setAttribute("viewBox", `0 0 ${TIDE_CHART_W} ${TIDE_CHART_H}`);
+  if (!hourly || !hourly.length) {
+    const t = svgElNS("text", { x: TIDE_CHART_W / 2, y: TIDE_CHART_H / 2, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 11, fill: "#6b8583" });
+    t.textContent = "Dati marea non disponibili";
+    svgEl_.appendChild(t);
+    return;
+  }
+  const levels = hourly.map((p) => p.level ?? 0);
+  const n = levels.length;
+  const minL = Math.min(...levels), maxL = Math.max(...levels);
+  const pad = Math.max(0.05, (maxL - minL) * 0.3);
+  const lo = minL - pad, hi = maxL + pad;
+  const x = (i) => TIDE_PAD_L + (i / (n - 1)) * TIDE_PLOT_W;
+  const y = (v) => TIDE_PAD_T + TIDE_PLOT_H - ((v - lo) / (hi - lo)) * TIDE_PLOT_H;
+
+  const defs = svgElNS("defs", {});
+  const grad = svgElNS("linearGradient", { id: "tideGrad", x1: "0", y1: "0", x2: "0", y2: "1" });
+  grad.appendChild(svgElNS("stop", { offset: "0%", "stop-color": "#4fd1c5", "stop-opacity": "0.7" }));
+  grad.appendChild(svgElNS("stop", { offset: "100%", "stop-color": "#000000", "stop-opacity": "0" }));
+  defs.appendChild(grad);
+  svgEl_.appendChild(defs);
+
+  [0, 0.5, 1].forEach((f) => {
+    const yy = TIDE_PAD_T + TIDE_PLOT_H * (1 - f);
+    svgEl_.appendChild(svgElNS("line", { x1: TIDE_PAD_L, x2: TIDE_CHART_W - TIDE_PAD_R, y1: yy, y2: yy, stroke: "rgba(222,242,241,0.06)", "stroke-width": 1 }));
+  });
+
+  // curva morbida "a onda" (sfumatura turchese -> nero), stesso trattamento
+  // usato in passato per il grafico onda prima di passare alle bar
+  const pts = levels.map((v, i) => [x(i), y(v)]);
+  const areaD = catmullRomPath(pts) + `L${x(n - 1).toFixed(1)},${(TIDE_CHART_H - TIDE_PAD_B).toFixed(1)} L${TIDE_PAD_L},${(TIDE_CHART_H - TIDE_PAD_B).toFixed(1)} Z`;
+  svgEl_.appendChild(svgElNS("path", { d: areaD, fill: "url(#tideGrad)" }));
+  svgEl_.appendChild(svgElNS("path", { d: catmullRomPath(pts), fill: "none", stroke: "#4fd1c5", "stroke-width": 2 }));
+
+  const highs = findTideExtremes(levels, (a, b) => a >= b, 3);
+  const lows = findTideExtremes(levels, (a, b) => a <= b, 3);
+
+  function markExtreme(i, color) {
+    svgEl_.appendChild(svgElNS("circle", { cx: x(i).toFixed(1), cy: y(levels[i]).toFixed(1), r: 3.5, fill: color }));
+    const lbl = svgElNS("text", {
+      x: x(i).toFixed(1), y: TIDE_CHART_H - 6, "text-anchor": "middle", "font-family": "IBM Plex Mono",
+      "font-weight": 600, "font-size": 9.5, fill: color,
+    });
+    lbl.textContent = hourly[i].time;
+    svgEl_.appendChild(lbl);
+  }
+  highs.forEach((i) => markExtreme(i, "#4fd1c5"));
+  lows.forEach((i) => markExtreme(i, "#9be3de"));
 }
 
 function webcamSectionHTML(spot) {
@@ -1068,6 +1154,9 @@ function openDrawer(spot) {
               ${tideContentHTML(tide)}
             </section>
           `;
+          if (tide.hourlyForecast && tide.hourlyForecast.length) {
+            renderTideChart(document.getElementById("tideChartSvg"), tide.hourlyForecast);
+          }
         })
         .catch(() => {
           if (token !== openToken) return;
