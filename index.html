@@ -744,21 +744,29 @@ function attachChartHover(svg, chart, xFn, n) {
   wrap.addEventListener("mousemove", (e) => handleMove(e.clientX));
   wrap.addEventListener("mouseleave", () => tip.classList.remove("show"));
   wrap.addEventListener("click", (e) => handleMove(e.clientX));
-  // Un tap secco (senza trascinare) non genera mai un evento touchmove:
-  // serve touchstart per rispondere anche al semplice tocco su una bar,
-  // non solo quando l'utente trascina il dito. Il tooltip resta visibile
-  // dopo aver sollevato il dito (niente touchend che lo nasconde), così
-  // si fa in tempo a leggerlo — sparisce solo toccando un altro punto o
-  // uscendo dal grafico.
   wrap.addEventListener("touchstart", (e) => { if (e.touches[0]) handleMove(e.touches[0].clientX); }, { passive: true });
   wrap.addEventListener("touchmove", (e) => { if (e.touches[0]) handleMove(e.touches[0].clientX); }, { passive: true });
-  // Rete di sicurezza: i Pointer Event unificano touch/mouse/penna e su
-  // molti browser mobili si comportano meglio dei Touch Event grezzi
-  // dentro contenitori scorrevoli annidati (niente ambiguità scroll-vs-tap
-  // che a volte sopprime del tutto touchstart/click).
   if (window.PointerEvent) {
     wrap.addEventListener("pointerdown", (e) => handleMove(e.clientX));
   }
+  // Rilevamento manuale del tap, senza fidarsi del "click" sintetico del
+  // browser: su alcuni Android/Chrome, un elemento scorrevole classifica
+  // anche un tocco fermo come inizio di uno scroll e sopprime click e a
+  // volte perfino touchmove. Calcoliamo noi la distanza tra inizio e fine
+  // tocco — se il dito non si è spostato più di qualche pixel, è un tap.
+  let tapStartX = null, tapStartY = null;
+  wrap.addEventListener("touchstart", (e) => {
+    const t = e.touches[0];
+    if (t) { tapStartX = t.clientX; tapStartY = t.clientY; }
+  }, { passive: true });
+  wrap.addEventListener("touchend", (e) => {
+    if (tapStartX == null) return;
+    const t = e.changedTouches[0];
+    if (t && Math.abs(t.clientX - tapStartX) < 10 && Math.abs(t.clientY - tapStartY) < 10) {
+      handleMove(t.clientX);
+    }
+    tapStartX = null;
+  });
 }
 
 // Scala colore vento (kn), interpolata con continuità tra le fasce invece
@@ -857,21 +865,29 @@ function attachWindChartHover(svg, windChart, xFn, n) {
   wrap.addEventListener("mousemove", (e) => handleMove(e.clientX));
   wrap.addEventListener("mouseleave", () => tip.classList.remove("show"));
   wrap.addEventListener("click", (e) => handleMove(e.clientX));
-  // Un tap secco (senza trascinare) non genera mai un evento touchmove:
-  // serve touchstart per rispondere anche al semplice tocco su una bar,
-  // non solo quando l'utente trascina il dito. Il tooltip resta visibile
-  // dopo aver sollevato il dito (niente touchend che lo nasconde), così
-  // si fa in tempo a leggerlo — sparisce solo toccando un altro punto o
-  // uscendo dal grafico.
   wrap.addEventListener("touchstart", (e) => { if (e.touches[0]) handleMove(e.touches[0].clientX); }, { passive: true });
   wrap.addEventListener("touchmove", (e) => { if (e.touches[0]) handleMove(e.touches[0].clientX); }, { passive: true });
-  // Rete di sicurezza: i Pointer Event unificano touch/mouse/penna e su
-  // molti browser mobili si comportano meglio dei Touch Event grezzi
-  // dentro contenitori scorrevoli annidati (niente ambiguità scroll-vs-tap
-  // che a volte sopprime del tutto touchstart/click).
   if (window.PointerEvent) {
     wrap.addEventListener("pointerdown", (e) => handleMove(e.clientX));
   }
+  // Rilevamento manuale del tap, senza fidarsi del "click" sintetico del
+  // browser: su alcuni Android/Chrome, un elemento scorrevole classifica
+  // anche un tocco fermo come inizio di uno scroll e sopprime click e a
+  // volte perfino touchmove. Calcoliamo noi la distanza tra inizio e fine
+  // tocco — se il dito non si è spostato più di qualche pixel, è un tap.
+  let tapStartX = null, tapStartY = null;
+  wrap.addEventListener("touchstart", (e) => {
+    const t = e.touches[0];
+    if (t) { tapStartX = t.clientX; tapStartY = t.clientY; }
+  }, { passive: true });
+  wrap.addEventListener("touchend", (e) => {
+    if (tapStartX == null) return;
+    const t = e.changedTouches[0];
+    if (t && Math.abs(t.clientX - tapStartX) < 10 && Math.abs(t.clientY - tapStartY) < 10) {
+      handleMove(t.clientX);
+    }
+    tapStartX = null;
+  });
 }
 
 function windChartSectionHTML(days) {
