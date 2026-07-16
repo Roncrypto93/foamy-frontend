@@ -309,16 +309,37 @@ async function fetchCurrentConditions(spot) {
       backendUnreachable: false,
     };
   } catch {
-    const wind = await fetchJSON("https://api.open-meteo.com/v1/forecast?" + new URLSearchParams({
-      latitude: spot.lat, longitude: spot.lon,
-      current: "wind_speed_10m,wind_gusts_10m,wind_direction_10m",
-      wind_speed_unit: "kn", timezone: "Europe/Rome",
-    }));
+    // Backend irraggiungibile (es. quota Open-Meteo esaurita sull'IP
+    // condiviso di Render): chiediamo vento E mare direttamente da questo
+    // browser, che ha il suo IP personale, separato da quello del backend.
+    // Il vento resta essenziale (se fallisce, propaghiamo l'errore); il
+    // mare degrada in autonomia — niente onda non blocca il vento.
+    const [windResult, marineResult] = await Promise.allSettled([
+      fetchJSON("https://api.open-meteo.com/v1/forecast?" + new URLSearchParams({
+        latitude: spot.lat, longitude: spot.lon,
+        current: "wind_speed_10m,wind_gusts_10m,wind_direction_10m",
+        wind_speed_unit: "kn", timezone: "Europe/Rome",
+      })),
+      fetchJSON("https://marine-api.open-meteo.com/v1/marine?" + new URLSearchParams({
+        latitude: spot.lat, longitude: spot.lon,
+        current: "wave_height,wave_period,wave_direction",
+        timezone: "Europe/Rome",
+      })),
+    ]);
+    if (windResult.status === "rejected") throw windResult.reason;
+
+    const wind = windResult.value;
+    const marine = marineResult.status === "fulfilled" ? marineResult.value : null;
+    const height = marine?.current?.wave_height ?? null;
+    const period = marine?.current?.wave_period ?? null;
+    const waveDir = marine?.current?.wave_direction ?? null;
+
     return {
       windSpeed: wind.current.wind_speed_10m,
       windGusts: wind.current.wind_gusts_10m,
       windDir: wind.current.wind_direction_10m,
-      height: null, period: null, waveDir: null, energy: null,
+      height, period, waveDir,
+      energy: energyFrom(height, period),
       seaStateLabel: null,
       degraded: true,
       backendUnreachable: true,
