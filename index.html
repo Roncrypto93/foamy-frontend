@@ -737,8 +737,15 @@ function attachChartHover(svg, chart, xFn, n) {
   }
   wrap.addEventListener("mousemove", (e) => handleMove(e.clientX));
   wrap.addEventListener("mouseleave", () => tip.classList.remove("show"));
+  wrap.addEventListener("click", (e) => handleMove(e.clientX));
+  // Un tap secco (senza trascinare) non genera mai un evento touchmove:
+  // serve touchstart per rispondere anche al semplice tocco su una bar,
+  // non solo quando l'utente trascina il dito. Il tooltip resta visibile
+  // dopo aver sollevato il dito (niente touchend che lo nasconde), così
+  // si fa in tempo a leggerlo — sparisce solo toccando un altro punto o
+  // uscendo dal grafico.
+  wrap.addEventListener("touchstart", (e) => { if (e.touches[0]) handleMove(e.touches[0].clientX); }, { passive: true });
   wrap.addEventListener("touchmove", (e) => { if (e.touches[0]) handleMove(e.touches[0].clientX); }, { passive: true });
-  wrap.addEventListener("touchend", () => tip.classList.remove("show"));
 }
 
 // Scala colore vento (kn), interpolata con continuità tra le fasce invece
@@ -836,8 +843,15 @@ function attachWindChartHover(svg, windChart, xFn, n) {
   }
   wrap.addEventListener("mousemove", (e) => handleMove(e.clientX));
   wrap.addEventListener("mouseleave", () => tip.classList.remove("show"));
+  wrap.addEventListener("click", (e) => handleMove(e.clientX));
+  // Un tap secco (senza trascinare) non genera mai un evento touchmove:
+  // serve touchstart per rispondere anche al semplice tocco su una bar,
+  // non solo quando l'utente trascina il dito. Il tooltip resta visibile
+  // dopo aver sollevato il dito (niente touchend che lo nasconde), così
+  // si fa in tempo a leggerlo — sparisce solo toccando un altro punto o
+  // uscendo dal grafico.
+  wrap.addEventListener("touchstart", (e) => { if (e.touches[0]) handleMove(e.touches[0].clientX); }, { passive: true });
   wrap.addEventListener("touchmove", (e) => { if (e.touches[0]) handleMove(e.touches[0].clientX); }, { passive: true });
-  wrap.addEventListener("touchend", () => tip.classList.remove("show"));
 }
 
 function windChartSectionHTML(days) {
