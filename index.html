@@ -279,6 +279,15 @@ function energyFrom(height, period) {
   return Math.round(0.5 * height * height * period * 10);
 }
 
+// Una raffica non può mai essere fisicamente più bassa della velocità
+// media: nei fallback qui sotto velocità e raffiche vengono da due modelli
+// diversi (ICON vs GFS), ognuno coerente solo al proprio interno.
+function gustFloor(gusts, speed) {
+  if (gusts == null) return speed;
+  if (speed == null) return gusts;
+  return Math.max(gusts, speed);
+}
+
 function round(v, d) {
   if (v == null) return null;
   const f = Math.pow(10, d);
@@ -351,7 +360,7 @@ async function fetchCurrentConditions(spot) {
 
     return {
       windSpeed: wind.current.wind_speed_10m,
-      windGusts: gfsGusts ?? wind.current.wind_gusts_10m,
+      windGusts: gustFloor(gfsGusts ?? wind.current.wind_gusts_10m, wind.current.wind_speed_10m),
       windDir: wind.current.wind_direction_10m,
       height, period, waveDir,
       energy: energyFrom(height, period),
@@ -386,10 +395,12 @@ function buildWindChartFromHourly(hourly) {
   if (!hourly?.time) return [];
   const points = [];
   for (let i = 0; i < hourly.time.length; i += 3) {
+    const speed = hourly.wind_speed_10m_best_match?.[i];
+    const rawGusts = hourly.wind_gusts_10m_gfs_seamless?.[i] ?? hourly.wind_gusts_10m_best_match?.[i];
     points.push({
       time: hourly.time[i],
-      windSpeedKn: round(hourly.wind_speed_10m_best_match?.[i], 1),
-      windGustsKn: round(hourly.wind_gusts_10m_gfs_seamless?.[i] ?? hourly.wind_gusts_10m_best_match?.[i], 1),
+      windSpeedKn: round(speed, 1),
+      windGustsKn: round(gustFloor(rawGusts, speed), 1),
       windDirectionDeg: hourly.wind_direction_10m_best_match?.[i] ?? null,
     });
   }
@@ -420,7 +431,10 @@ async function fetchWeeklyDataFromOpenMeteo(spot) {
     return {
       date,
       windSpeed: wind.daily.wind_speed_10m_max_best_match[i],
-      windGusts: wind.daily.wind_gusts_10m_max_gfs_seamless?.[i] ?? wind.daily.wind_gusts_10m_max_best_match?.[i],
+      windGusts: gustFloor(
+        wind.daily.wind_gusts_10m_max_gfs_seamless?.[i] ?? wind.daily.wind_gusts_10m_max_best_match?.[i],
+        wind.daily.wind_speed_10m_max_best_match[i]
+      ),
       windDir: wind.daily.wind_direction_10m_dominant_best_match[i],
       height: dHeight,
       period: marine?.daily?.wave_period_max?.[i] ?? null,
