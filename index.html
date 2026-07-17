@@ -318,7 +318,7 @@ async function fetchCurrentConditions(spot) {
     // browser, che ha il suo IP personale, separato da quello del backend.
     // Il vento resta essenziale (se fallisce, propaghiamo l'errore); il
     // mare degrada in autonomia — niente onda non blocca il vento.
-    const [windResult, marineResult] = await Promise.allSettled([
+    const [windResult, marineResult, gustsResult] = await Promise.allSettled([
       fetchJSON("https://api.open-meteo.com/v1/forecast?" + new URLSearchParams({
         latitude: spot.lat, longitude: spot.lon,
         current: "wind_speed_10m,wind_gusts_10m,wind_direction_10m",
@@ -329,18 +329,29 @@ async function fetchCurrentConditions(spot) {
         current: "wave_height,wave_period,wave_direction",
         timezone: "Europe/Rome",
       })),
+      // Raffiche da GFS (taratura Windguru, come nel backend): il blocco
+      // "current" di Open-Meteo non supporta più modelli in una chiamata,
+      // quindi serve una richiesta separata. Se fallisce, si ricade sulle
+      // raffiche del modello principale qui sopra.
+      fetchJSON("https://api.open-meteo.com/v1/forecast?" + new URLSearchParams({
+        latitude: spot.lat, longitude: spot.lon,
+        current: "wind_gusts_10m",
+        wind_speed_unit: "kn", timezone: "Europe/Rome",
+        models: "gfs_seamless",
+      })),
     ]);
     if (windResult.status === "rejected") throw windResult.reason;
 
     const wind = windResult.value;
     const marine = marineResult.status === "fulfilled" ? marineResult.value : null;
+    const gfsGusts = gustsResult.status === "fulfilled" ? gustsResult.value?.current?.wind_gusts_10m : null;
     const height = marine?.current?.wave_height ?? null;
     const period = marine?.current?.wave_period ?? null;
     const waveDir = marine?.current?.wave_direction ?? null;
 
     return {
       windSpeed: wind.current.wind_speed_10m,
-      windGusts: wind.current.wind_gusts_10m,
+      windGusts: gfsGusts ?? wind.current.wind_gusts_10m,
       windDir: wind.current.wind_direction_10m,
       height, period, waveDir,
       energy: energyFrom(height, period),
@@ -369,15 +380,17 @@ function buildChartFromHourly(hourly) {
   return points;
 }
 
+// Raffiche da GFS (taratura Windguru, come nel backend): con due modelli
+// nella stessa chiamata Open-Meteo suffissa i campi con il nome del modello.
 function buildWindChartFromHourly(hourly) {
   if (!hourly?.time) return [];
   const points = [];
   for (let i = 0; i < hourly.time.length; i += 3) {
     points.push({
       time: hourly.time[i],
-      windSpeedKn: round(hourly.wind_speed_10m?.[i], 1),
-      windGustsKn: round(hourly.wind_gusts_10m?.[i], 1),
-      windDirectionDeg: hourly.wind_direction_10m?.[i] ?? null,
+      windSpeedKn: round(hourly.wind_speed_10m_best_match?.[i], 1),
+      windGustsKn: round(hourly.wind_gusts_10m_gfs_seamless?.[i] ?? hourly.wind_gusts_10m_best_match?.[i], 1),
+      windDirectionDeg: hourly.wind_direction_10m_best_match?.[i] ?? null,
     });
   }
   return points;
@@ -389,6 +402,7 @@ async function fetchWeeklyDataFromOpenMeteo(spot) {
     daily: "wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant",
     hourly: "wind_speed_10m,wind_gusts_10m,wind_direction_10m",
     wind_speed_unit: "kn", forecast_days: 7, timezone: "Europe/Rome",
+    models: "best_match,gfs_seamless",
   });
   const marineUrl = "https://marine-api.open-meteo.com/v1/marine?" + new URLSearchParams({
     latitude: spot.lat, longitude: spot.lon,
@@ -405,9 +419,9 @@ async function fetchWeeklyDataFromOpenMeteo(spot) {
     const dHeight = marine?.daily?.wave_height_max?.[i] ?? null;
     return {
       date,
-      windSpeed: wind.daily.wind_speed_10m_max[i],
-      windGusts: wind.daily.wind_gusts_10m_max[i],
-      windDir: wind.daily.wind_direction_10m_dominant[i],
+      windSpeed: wind.daily.wind_speed_10m_max_best_match[i],
+      windGusts: wind.daily.wind_gusts_10m_max_gfs_seamless?.[i] ?? wind.daily.wind_gusts_10m_max_best_match?.[i],
+      windDir: wind.daily.wind_direction_10m_dominant_best_match[i],
       height: dHeight,
       period: marine?.daily?.wave_period_max?.[i] ?? null,
       waveDir: marine?.daily?.wave_direction_dominant?.[i] ?? null,
