@@ -167,8 +167,10 @@
   .wave-table-days th { color: var(--accent-soft); font-weight: 700; font-size: 10.5px; padding-bottom: 5px; }
   .wave-table-days th.wave-th-label { background: var(--surface); box-shadow: none; }
   .wave-table-hours td { color: var(--ink-dim); font-size: 9.5px; padding-top: 3px; padding-bottom: 7px; }
-  .wave-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; padding: 4px 7px; border-radius: 7px; font-weight: 700; color: #0b0f19; }
-  .wave-chip--force { min-width: 22px; height: 22px; padding: 0; border-radius: 50%; font-size: 10.5px; }
+  /* Colore acceso riservato alle onde surfabili (>1m): un solo colore
+     fisso, quello base della piattaforma, non una scala. */
+  .wave-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; padding: 4px 7px; border-radius: 7px; font-weight: 700; color: #0b0f19; background: var(--accent); }
+  .wave-energy-strong { font-weight: 700; color: var(--ink-bright); }
   .wave-table svg { display: block; margin: 0 auto; }
   .chart-legend { display: flex; gap: 14px; font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); margin-bottom: 8px; }
   .legend-item { display: flex; align-items: center; gap: 5px; }
@@ -736,24 +738,27 @@ function renderWaveTable(root, chart) {
     dayHeaderCells += `<th colspan="${span}" class="${dayStart(start).trim()}">${dayLabel(dateStr, d)}</th>`;
   }
 
-  let hourCells = "", heightCells = "", periodCells = "", forceCells = "", dirCells = "";
+  let hourCells = "", heightCells = "", periodCells = "", energyCells = "", dirCells = "";
   for (let i = 0; i < n; i++) {
     const p = chart[i];
     const cls = dayStart(i);
     const time = new Date(p.time);
     hourCells += `<td class="${cls.trim()}">${String(time.getHours()).padStart(2, "0")}</td>`;
 
-    const seaState = p.waveHeightM != null ? classifySeaState(p.waveHeightM) : null;
-    const seaColor = seaState ? seaState[1] : null;
-    const forceNum = seaState ? seaState[3] : null;
-
-    heightCells += `<td class="${cls.trim()}">${p.waveHeightM != null ? `<span class="wave-chip" style="background:${seaColor}">${p.waveHeightM.toFixed(1)}</span>` : "—"}</td>`;
+    // Colore acceso solo per le onde davvero surfabili (>1m): l'unico
+    // colore usato è quello base della piattaforma, non una scala.
+    const isBig = p.waveHeightM != null && p.waveHeightM > 1;
+    heightCells += `<td class="${cls.trim()}">${p.waveHeightM != null
+      ? (isBig ? `<span class="wave-chip">${p.waveHeightM.toFixed(1)}</span>` : p.waveHeightM.toFixed(1))
+      : "—"}</td>`;
 
     periodCells += `<td class="${cls.trim()}">${p.wavePeriodS != null ? Math.round(p.wavePeriodS) : "—"}</td>`;
 
-    // Forza mare (Douglas 1-5), stesso colore/scala dell'altezza — non è
-    // una misura indipendente, riusa classifySeaState per restare coerente.
-    forceCells += `<td class="${cls.trim()}">${forceNum != null ? `<span class="wave-chip wave-chip--force" style="background:${seaColor}">${forceNum}</span>` : "—"}</td>`;
+    // Energia dell'onda (kJ): niente colore, solo grassetto oltre 100.
+    const energyKJ = p.waveEnergyKJ != null ? Math.round(p.waveEnergyKJ) : null;
+    energyCells += `<td class="${cls.trim()}">${energyKJ != null
+      ? (energyKJ > 100 ? `<span class="wave-energy-strong">${energyKJ}</span>` : energyKJ)
+      : "—"}</td>`;
 
     // Direzione: stessa freccina e convenzione (grado grezzo, punta da dove
     // viene lo swell) già usata altrove nel sito per le onde.
@@ -769,7 +774,7 @@ function renderWaveTable(root, chart) {
       <tbody>
         <tr><th class="wave-th-label">Altezza (m)</th>${heightCells}</tr>
         <tr><th class="wave-th-label">Periodo (s)</th>${periodCells}</tr>
-        <tr><th class="wave-th-label">Forza mare</th>${forceCells}</tr>
+        <tr><th class="wave-th-label">Energia (kJ)</th>${energyCells}</tr>
         <tr><th class="wave-th-label">Direzione</th>${dirCells}</tr>
       </tbody>
     </table>
@@ -954,7 +959,7 @@ function waveChartSectionHTML() {
     <section class="panel">
       <p class="panel-label" style="margin-bottom:4px">Mare — 7 giorni</p>
       <div class="chart-legend" style="font-size:12px">
-        <span class="legend-item"><span class="legend-swatch" style="background:#4fd1c5;border-radius:2px;width:12px;height:8px"></span>Altezza (colore = forza mare)</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:var(--accent);border-radius:2px;width:12px;height:8px"></span>Onda oltre 1m</span>
         <span class="legend-item">Freccia: da dove viene lo swell</span>
       </div>
       <div class="wave-table-wrap" id="waveTableWrap"></div>
