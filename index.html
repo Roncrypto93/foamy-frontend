@@ -102,6 +102,17 @@
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; }
   .panel-label { font-family: var(--font-data); font-weight: 600; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-bright); margin: 0 0 12px; }
 
+  /* Punto rosso pulsante: segnala che vento/swell qui sopra sono le
+     condizioni attuali (in tempo reale), non parte del forecast a 7 giorni
+     più sotto nello stesso pannello. */
+  .live-badge { display: flex; align-items: center; gap: 6px; font-family: var(--font-data); font-weight: 700; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 10px; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #e0524f; flex-shrink: 0; animation: live-pulse 1.8s ease-out infinite; }
+  @keyframes live-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(224,82,79,0.5); }
+    70% { box-shadow: 0 0 0 6px rgba(224,82,79,0); }
+    100% { box-shadow: 0 0 0 0 rgba(224,82,79,0); }
+  }
+
   .wind-card { display: flex; align-items: center; gap: 22px; }
   .arrow-widget { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; width: 74px; }
   .arrow-widget svg { display: block; }
@@ -651,6 +662,7 @@ function dayLabel(dateStr, idx) {
 
 function currentConditionsHTML(f) {
   return `
+    <div class="live-badge"><span class="live-dot"></span>Live</div>
     <div class="top-banners">
       <section class="panel panel--wind wind-card">
         ${arrowSVG(f.windDir, 92)}
