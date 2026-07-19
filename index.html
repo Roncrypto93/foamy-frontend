@@ -154,15 +154,21 @@
   .wind-chart-wrap::-webkit-scrollbar-thumb, .wave-table-wrap::-webkit-scrollbar-thumb { background: rgba(222,242,241,0.14); border-radius: 2px; }
   .wind-chart-wrap::-webkit-scrollbar-thumb:hover, .wave-table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(222,242,241,0.3); }
   /* Tabella onda stile Surfline: righe di dati per colonne di tempo, non
-     un grafico a barre — di proposito un layout distinto dal vento.
-     L'etichetta di riga resta fissa (sticky) durante lo scroll orizzontale. */
-  .wave-table { border-collapse: collapse; font-family: var(--font-data); }
-  .wave-table th, .wave-table td { border: 1px solid rgba(222,242,241,0.08); padding: 6px 3px; text-align: center; font-size: 11px; white-space: nowrap; min-width: 36px; color: var(--ink-bright); }
-  .wave-th-label { position: sticky; left: 0; z-index: 2; background: var(--surface); text-align: left; padding: 6px 10px; font-size: 9.5px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .04em; min-width: 88px; }
-  .wave-table-days th { color: var(--accent-soft); font-weight: 700; font-size: 10.5px; background: rgba(255,255,255,0.02); }
-  .wave-table-days th.wave-th-label { background: var(--surface); }
-  .wave-table-hours td { color: var(--ink-dim); font-size: 9.5px; }
-  .wave-td-height { font-weight: 700; color: #0b0f19; }
+     un grafico a barre — di proposito un layout distinto dal vento. Niente
+     griglia stile foglio di calcolo: solo una riga sottile tra i dati e un
+     bordo tratteggiato leggero a inizio giornata, i valori vivono in "chip"
+     arrotondate invece che riempire tutta la cella. L'etichetta di riga
+     resta fissa (sticky) durante lo scroll orizzontale. */
+  .wave-table { border-collapse: separate; border-spacing: 0; font-family: var(--font-data); }
+  .wave-table th, .wave-table td { padding: 9px 5px; text-align: center; font-size: 11.5px; white-space: nowrap; min-width: 40px; color: var(--ink-bright); }
+  .wave-table tbody th, .wave-table tbody td { border-top: 1px solid rgba(222,242,241,0.07); }
+  .wave-table .wave-day-start { border-left: 1px dashed rgba(222,242,241,0.14); }
+  .wave-th-label { position: sticky; left: 0; z-index: 2; background: var(--surface); text-align: left; padding: 9px 14px; font-size: 9.5px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .05em; min-width: 92px; box-shadow: 6px 0 8px -6px rgba(0,0,0,0.5); }
+  .wave-table-days th { color: var(--accent-soft); font-weight: 700; font-size: 10.5px; padding-bottom: 5px; }
+  .wave-table-days th.wave-th-label { background: var(--surface); box-shadow: none; }
+  .wave-table-hours td { color: var(--ink-dim); font-size: 9.5px; padding-top: 3px; padding-bottom: 7px; }
+  .wave-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; padding: 4px 7px; border-radius: 7px; font-weight: 700; color: #0b0f19; }
+  .wave-chip--force { min-width: 22px; height: 22px; padding: 0; border-radius: 50%; font-size: 10.5px; }
   .wave-table svg { display: block; margin: 0 auto; }
   .chart-legend { display: flex; gap: 14px; font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); margin-bottom: 8px; }
   .legend-item { display: flex; align-items: center; gap: 5px; }
@@ -716,6 +722,10 @@ function renderWaveTable(root, chart) {
     return;
   }
 
+  // Separatore leggero tra un giorno e l'altro (bordo tratteggiato sulla
+  // prima colonna di ogni nuovo giorno), non una griglia su ogni cella.
+  const dayStart = (i) => (i > 0 && i % POINTS_PER_DAY === 0 ? " wave-day-start" : "");
+
   const totalDays = Math.max(1, Math.round(n / POINTS_PER_DAY));
   let dayHeaderCells = "";
   for (let d = 0; d < totalDays; d++) {
@@ -723,23 +733,31 @@ function renderWaveTable(root, chart) {
     const span = Math.min(POINTS_PER_DAY, n - start);
     const idx = Math.min(start + Math.floor(POINTS_PER_DAY / 2), n - 1);
     const dateStr = chart[idx].time.slice(0, 10);
-    dayHeaderCells += `<th colspan="${span}">${dayLabel(dateStr, d)}</th>`;
+    dayHeaderCells += `<th colspan="${span}" class="${dayStart(start).trim()}">${dayLabel(dateStr, d)}</th>`;
   }
 
-  let hourCells = "", heightCells = "", periodCells = "", dirCells = "";
+  let hourCells = "", heightCells = "", periodCells = "", forceCells = "", dirCells = "";
   for (let i = 0; i < n; i++) {
     const p = chart[i];
+    const cls = dayStart(i);
     const time = new Date(p.time);
-    hourCells += `<td>${String(time.getHours()).padStart(2, "0")}</td>`;
+    hourCells += `<td class="${cls.trim()}">${String(time.getHours()).padStart(2, "0")}</td>`;
 
-    const seaColor = p.waveHeightM != null ? classifySeaState(p.waveHeightM)[1] : null;
-    heightCells += `<td class="wave-td-height"${seaColor ? ` style="background:${seaColor}"` : ""}>${p.waveHeightM != null ? p.waveHeightM.toFixed(1) : "—"}</td>`;
+    const seaState = p.waveHeightM != null ? classifySeaState(p.waveHeightM) : null;
+    const seaColor = seaState ? seaState[1] : null;
+    const forceNum = seaState ? seaState[3] : null;
 
-    periodCells += `<td>${p.wavePeriodS != null ? Math.round(p.wavePeriodS) : "—"}</td>`;
+    heightCells += `<td class="${cls.trim()}">${p.waveHeightM != null ? `<span class="wave-chip" style="background:${seaColor}">${p.waveHeightM.toFixed(1)}</span>` : "—"}</td>`;
+
+    periodCells += `<td class="${cls.trim()}">${p.wavePeriodS != null ? Math.round(p.wavePeriodS) : "—"}</td>`;
+
+    // Forza mare (Douglas 1-5), stesso colore/scala dell'altezza — non è
+    // una misura indipendente, riusa classifySeaState per restare coerente.
+    forceCells += `<td class="${cls.trim()}">${forceNum != null ? `<span class="wave-chip wave-chip--force" style="background:${seaColor}">${forceNum}</span>` : "—"}</td>`;
 
     // Direzione: stessa freccina e convenzione (grado grezzo, punta da dove
     // viene lo swell) già usata altrove nel sito per le onde.
-    dirCells += `<td>${p.waveDirectionDeg != null ? directionChevronSVG(p.waveDirectionDeg) : "—"}</td>`;
+    dirCells += `<td class="${cls.trim()}">${p.waveDirectionDeg != null ? directionChevronSVG(p.waveDirectionDeg) : "—"}</td>`;
   }
 
   root.innerHTML = `
@@ -751,6 +769,7 @@ function renderWaveTable(root, chart) {
       <tbody>
         <tr><th class="wave-th-label">Altezza (m)</th>${heightCells}</tr>
         <tr><th class="wave-th-label">Periodo (s)</th>${periodCells}</tr>
+        <tr><th class="wave-th-label">Forza mare</th>${forceCells}</tr>
         <tr><th class="wave-th-label">Direzione</th>${dirCells}</tr>
       </tbody>
     </table>
