@@ -868,7 +868,7 @@ function rgbCss(rgb) { return `rgb(${Math.round(rgb[0])},${Math.round(rgb[1])},$
 // scorre in orizzontale su qualunque schermo — con 56 colonne larghe è
 // naturale che non ci stia mai tutto in una volta, desktop incluso.
 const WIND2_COL_W = 34;
-const WIND2_CHART_H = 210;
+const WIND2_CHART_H = 222;
 const WIND2_DAY_H = 15;       // riga nome giorno, in alto
 const WIND2_HOUR_H = 14;      // riga ora, subito sotto la data
 const WIND2_TABLE_TOP = WIND2_DAY_H + WIND2_HOUR_H; // 29
@@ -876,7 +876,7 @@ const WIND2_CELL_H = 24;      // riga "tabella" vento (ingrandita)
 const WIND2_GCELL_H = 22;     // riga "tabella" raffiche (ingrandita)
 const WIND2_TABLE_BOTTOM = WIND2_TABLE_TOP + WIND2_CELL_H + WIND2_GCELL_H; // 75
 const WIND2_BAR_TOP = WIND2_TABLE_BOTTOM + 7;
-const WIND2_BOTTOM_RESERVED = 20; // solo freccia direzione, sotto le bar
+const WIND2_BOTTOM_RESERVED = 32; // freccia direzione + sigla (N, NE, ...) sotto le bar
 const WIND2_PLOT_BOTTOM = WIND2_CHART_H - WIND2_BOTTOM_RESERVED;
 const WIND2_BAR_MAX_H = WIND2_PLOT_BOTTOM - WIND2_BAR_TOP;
 const WIND2_INK_ON_COLOR = "#0b0f19";
@@ -957,12 +957,17 @@ function renderWindChart(svgEl_, windChart) {
       fill: windColor(speeds[i]), opacity: 0.85, rx: 2,
     }));
 
-    // Direzione sotto le bar (freccia verso dove soffia il vento).
+    // Direzione sotto le bar: freccia (verso dove soffia il vento) più
+    // sigla (N, NE, ...) della direzione di provenienza, sotto la freccia.
     const dir = windChart[i].windDirectionDeg;
     if (dir != null) {
-      const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},${WIND2_PLOT_BOTTOM + 10}) rotate(${dir + 180})` });
+      const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},${WIND2_PLOT_BOTTOM + 9}) rotate(${dir + 180})` });
       g.appendChild(svgElNS("path", { d: "M0,-6 L-4,5 L0,2 L4,5 Z", fill: "#f4fdfc" }));
       svgEl_.appendChild(g);
+
+      const dirLbl = svgElNS("text", { x: cx, y: WIND2_PLOT_BOTTOM + 26, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 9, fill: "#9be3de" });
+      dirLbl.textContent = cardinal16(dir);
+      svgEl_.appendChild(dirLbl);
     }
   }
 
