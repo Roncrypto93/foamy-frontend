@@ -164,7 +164,11 @@
      numero di punti (impostata via JS), non percentuale — scorre in
      orizzontale su qualunque schermo, non solo mobile, perché con 56
      colonne larghe non ci sta quasi mai tutto in una volta. */
-  .wind-chart-wrap { position: relative; overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x; }
+  .wind-chart-wrap { position: relative; overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x; scrollbar-width: thin; scrollbar-color: rgba(222,242,241,0.14) transparent; }
+  .wind-chart-wrap::-webkit-scrollbar { height: 3px; }
+  .wind-chart-wrap::-webkit-scrollbar-track { background: transparent; }
+  .wind-chart-wrap::-webkit-scrollbar-thumb { background: rgba(222,242,241,0.14); border-radius: 2px; }
+  .wind-chart-wrap::-webkit-scrollbar-thumb:hover { background: rgba(222,242,241,0.3); }
   .chart-tip { position: absolute; pointer-events: none; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px 9px; font-family: var(--font-data); font-size: 10.5px; color: var(--ink-bright); transform: translate(-50%, -110%); white-space: nowrap; opacity: 0; transition: opacity .1s; z-index: 5; line-height: 1.5; }
   .chart-tip.show { opacity: 1; }
   .chart-tip .tip-accent { color: var(--accent); }
@@ -864,10 +868,16 @@ function rgbCss(rgb) { return `rgb(${Math.round(rgb[0])},${Math.round(rgb[1])},$
 // scorre in orizzontale su qualunque schermo — con 56 colonne larghe è
 // naturale che non ci stia mai tutto in una volta, desktop incluso.
 const WIND2_COL_W = 34;
-const WIND2_CHART_H = 210;
-const WIND2_PAD_TOP = 48;
-const WIND2_PAD_BOTTOM = 30;
-const WIND2_BAR_MAX_H = WIND2_CHART_H - WIND2_PAD_TOP - WIND2_PAD_BOTTOM;
+const WIND2_CHART_H = 200;
+const WIND2_DAY_H = 16;       // riga nome giorno, in alto
+const WIND2_CELL_H = 20;      // riga "tabella" vento
+const WIND2_GCELL_H = 18;     // riga "tabella" raffiche
+const WIND2_TABLE_BOTTOM = WIND2_DAY_H + WIND2_CELL_H + WIND2_GCELL_H; // 54
+const WIND2_BAR_TOP = WIND2_TABLE_BOTTOM + 7;
+const WIND2_BOTTOM_RESERVED = 34; // freccia direzione + ora, sotto le bar
+const WIND2_PLOT_BOTTOM = WIND2_CHART_H - WIND2_BOTTOM_RESERVED;
+const WIND2_BAR_MAX_H = WIND2_PLOT_BOTTOM - WIND2_BAR_TOP;
+const WIND2_INK_ON_COLOR = "#0b0f19";
 
 function renderWindChart(svgEl_, windChart) {
   svgEl_.innerHTML = "";
@@ -890,44 +900,59 @@ function renderWindChart(svgEl_, windChart) {
   const speeds = windChart.map((p) => p.windSpeedKn ?? 0);
   const gusts = windChart.map((p) => p.windGustsKn ?? 0);
   const maxV = Math.max(5, ...gusts) * 1.1;
-  const plotBottom = WIND2_CHART_H - WIND2_PAD_BOTTOM;
   const x = (i) => i * WIND2_COL_W + WIND2_COL_W / 2;
   const barH = (v) => (v / maxV) * WIND2_BAR_MAX_H;
 
   const totalDays = Math.max(1, Math.round(n / POINTS_PER_DAY));
   for (let d = 1; d < totalDays; d++) {
     const xd = d * POINTS_PER_DAY * WIND2_COL_W;
-    svgEl_.appendChild(svgElNS("line", { x1: xd, x2: xd, y1: WIND2_PAD_TOP - 8, y2: plotBottom, stroke: "rgba(222,242,241,0.12)", "stroke-width": 1, "stroke-dasharray": "2 3" }));
+    svgEl_.appendChild(svgElNS("line", { x1: xd, x2: xd, y1: WIND2_DAY_H, y2: WIND2_PLOT_BOTTOM, stroke: "rgba(222,242,241,0.12)", "stroke-width": 1, "stroke-dasharray": "2 3" }));
   }
 
   const barW = WIND2_COL_W * 0.62;
   for (let i = 0; i < n; i++) {
     const cx = x(i);
+    const colX = i * WIND2_COL_W;
+
+    // Tabella stile Windguru: due celle piene, vento sopra e raffiche
+    // sotto, colorate con la stessa scala del vento (a bordo colonna,
+    // senza spazi, per leggersi come una riga di tabella continua).
+    svgEl_.appendChild(svgElNS("rect", {
+      x: colX, y: WIND2_DAY_H, width: WIND2_COL_W, height: WIND2_CELL_H,
+      fill: windColor(speeds[i]),
+    }));
+    const speedLbl = svgElNS("text", { x: cx, y: WIND2_DAY_H + WIND2_CELL_H / 2 + 4, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 700, "font-size": 11.5, fill: WIND2_INK_ON_COLOR });
+    speedLbl.textContent = speeds[i] != null ? Math.round(speeds[i]) : "—";
+    svgEl_.appendChild(speedLbl);
+
+    const gy = WIND2_DAY_H + WIND2_CELL_H + 1;
+    svgEl_.appendChild(svgElNS("rect", {
+      x: colX, y: gy, width: WIND2_COL_W, height: WIND2_GCELL_H,
+      fill: windColor(gusts[i]),
+    }));
+    const gustLbl = svgElNS("text", { x: cx, y: gy + WIND2_GCELL_H / 2 + 3.5, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 10, fill: WIND2_INK_ON_COLOR });
+    gustLbl.textContent = gusts[i] != null ? Math.round(gusts[i]) : "—";
+    svgEl_.appendChild(gustLbl);
+
+    // Bar, altezza in base alla velocità, colore in base alla stessa scala.
     const h = Math.max(1, barH(speeds[i]));
-    const yTop = plotBottom - h;
+    const yTop = WIND2_PLOT_BOTTOM - h;
     svgEl_.appendChild(svgElNS("rect", {
       x: (cx - barW / 2).toFixed(1), y: yTop.toFixed(1),
       width: barW.toFixed(1), height: h.toFixed(1),
       fill: windColor(speeds[i]), opacity: 0.85, rx: 2,
     }));
 
+    // Direzione sotto le bar (freccia verso dove soffia il vento).
     const dir = windChart[i].windDirectionDeg;
     if (dir != null) {
-      const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},12) rotate(${dir + 180})` });
+      const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},${WIND2_PLOT_BOTTOM + 12}) rotate(${dir + 180})` });
       g.appendChild(svgElNS("path", { d: "M0,-6 L-4,5 L0,2 L4,5 Z", fill: "#f4fdfc" }));
       svgEl_.appendChild(g);
     }
 
-    const speedLbl = svgElNS("text", { x: cx, y: 27, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 11.5, fill: "#f4fdfc" });
-    speedLbl.textContent = speeds[i] != null ? Math.round(speeds[i]) : "—";
-    svgEl_.appendChild(speedLbl);
-
-    const gustLbl = svgElNS("text", { x: cx, y: 39, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 9.5, fill: "#9be3de" });
-    gustLbl.textContent = gusts[i] != null ? Math.round(gusts[i]) : "—";
-    svgEl_.appendChild(gustLbl);
-
     const time = new Date(windChart[i].time);
-    const hourLbl = svgElNS("text", { x: cx, y: WIND2_CHART_H - 17, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 9, fill: "#6b8583" });
+    const hourLbl = svgElNS("text", { x: cx, y: WIND2_CHART_H - 5, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 9, fill: "#6b8583" });
     hourLbl.textContent = String(time.getHours()).padStart(2, "0");
     svgEl_.appendChild(hourLbl);
   }
@@ -936,7 +961,7 @@ function renderWindChart(svgEl_, windChart) {
     const idx = Math.min(d * POINTS_PER_DAY + Math.floor(POINTS_PER_DAY / 2), n - 1);
     const dateStr = windChart[idx].time.slice(0, 10);
     const cx = (d * POINTS_PER_DAY + POINTS_PER_DAY / 2) * WIND2_COL_W;
-    const dayLbl = svgElNS("text", { x: cx, y: WIND2_CHART_H - 5, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 9.5, fill: "#9be3de" });
+    const dayLbl = svgElNS("text", { x: cx, y: WIND2_DAY_H - 4, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 9.5, fill: "#9be3de" });
     dayLbl.textContent = dayLabel(dateStr, d);
     svgEl_.appendChild(dayLbl);
   }
@@ -947,9 +972,8 @@ function windChartSectionHTML() {
     <section class="panel">
       <p class="panel-label" style="margin-bottom:4px">Vento — 7 giorni</p>
       <div class="chart-legend" style="font-size:12px">
-        <span class="legend-item"><span class="legend-swatch legend-swatch--gradient"></span>Velocità (kn)</span>
-        <span class="legend-item"><span class="legend-swatch" style="background:#f4fdfc;border-radius:50%;width:7px;height:7px"></span>Vento</span>
-        <span class="legend-item"><span class="legend-swatch" style="background:#9be3de;border-radius:50%;width:7px;height:7px"></span>Raffiche</span>
+        <span class="legend-item"><span class="legend-swatch legend-swatch--gradient"></span>Scala colore (kn)</span>
+        <span class="legend-item">Riga sopra: vento · Riga sotto: raffiche</span>
       </div>
       <div class="wind-chart-wrap" id="windChartWrap">
         <svg id="windChartSvg"></svg>
