@@ -150,34 +150,19 @@
      orizzontale riservato ai grafici a 7 giorni — classe separata apposta. */
   .tide-chart-wrap { position: relative; }
   .tide-chart-wrap svg { width: 100%; height: auto; display: block; }
-  /* Grafico vento: l'svg ha una larghezza fissa in px calcolata dal numero
-     di punti (impostata via JS), non percentuale — scorre in orizzontale
-     su qualunque schermo, non solo mobile, perché con 56 colonne larghe
-     non ci sta quasi mai tutto in una volta. */
-  .wind-chart-wrap, .wave-table-wrap { position: relative; overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x; scrollbar-width: thin; scrollbar-color: rgba(222,242,241,0.14) transparent; }
-  .wind-chart-wrap::-webkit-scrollbar, .wave-table-wrap::-webkit-scrollbar { height: 3px; }
-  .wind-chart-wrap::-webkit-scrollbar-track, .wave-table-wrap::-webkit-scrollbar-track { background: transparent; }
-  .wind-chart-wrap::-webkit-scrollbar-thumb, .wave-table-wrap::-webkit-scrollbar-thumb { background: rgba(222,242,241,0.14); border-radius: 2px; }
-  .wind-chart-wrap::-webkit-scrollbar-thumb:hover, .wave-table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(222,242,241,0.3); }
-  /* Tabella onda stile Surfline: righe di dati per colonne di tempo, non
-     un grafico a barre — di proposito un layout distinto dal vento. Niente
-     griglia stile foglio di calcolo: solo una riga sottile tra i dati e un
-     bordo tratteggiato leggero a inizio giornata, i valori vivono in "chip"
-     arrotondate invece che riempire tutta la cella. L'etichetta di riga
-     resta fissa (sticky) durante lo scroll orizzontale. */
-  .wave-table { border-collapse: separate; border-spacing: 0; font-family: var(--font-data); }
-  .wave-table th, .wave-table td { padding: 9px 5px; text-align: center; font-size: 11.5px; white-space: nowrap; min-width: 40px; color: var(--ink-bright); }
-  .wave-table tbody th, .wave-table tbody td { border-top: 1px solid rgba(222,242,241,0.07); }
-  .wave-table .wave-day-start { border-left: 1px dashed rgba(222,242,241,0.14); }
-  .wave-th-label { position: sticky; left: 0; z-index: 2; background: var(--surface); text-align: left; padding: 9px 14px; font-size: 9.5px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .05em; min-width: 92px; box-shadow: 6px 0 8px -6px rgba(0,0,0,0.5); }
-  .wave-table-days th { color: var(--accent-soft); font-weight: 700; font-size: 10.5px; padding-bottom: 5px; }
-  .wave-table-days th.wave-th-label { background: var(--surface); box-shadow: none; }
-  .wave-table-hours td { color: var(--ink-dim); font-size: 9.5px; padding-top: 3px; padding-bottom: 7px; }
-  /* Colore acceso riservato alle onde surfabili (>1m): un solo colore
-     fisso, quello base della piattaforma, non una scala. */
-  .wave-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; padding: 4px 7px; border-radius: 7px; font-weight: 700; color: #0b0f19; background: var(--accent); }
-  .wave-energy-strong { font-weight: 700; color: var(--ink-bright); }
-  .wave-table svg { display: block; margin: 0 auto; }
+  /* Vento e mare condividono lo stesso banner Forecast: due sotto-sezioni
+     separate da un divisore invece di due pannelli con bordo proprio. */
+  .forecast-sub--divider { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .forecast-sub-label { font-family: var(--font-data); font-weight: 600; font-size: 12px; color: var(--ink-bright); margin: 0 0 8px; }
+  /* Grafici vento e onda: l'svg ha una larghezza fissa in px calcolata dal
+     numero di punti (impostata via JS), non percentuale — scorrono in
+     orizzontale su qualunque schermo, non solo mobile, perché con 56
+     colonne larghe non ci sta quasi mai tutto in una volta. */
+  .wind-chart-wrap, .wave-chart-wrap { position: relative; overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x; scrollbar-width: thin; scrollbar-color: rgba(222,242,241,0.14) transparent; }
+  .wind-chart-wrap::-webkit-scrollbar, .wave-chart-wrap::-webkit-scrollbar { height: 3px; }
+  .wind-chart-wrap::-webkit-scrollbar-track, .wave-chart-wrap::-webkit-scrollbar-track { background: transparent; }
+  .wind-chart-wrap::-webkit-scrollbar-thumb, .wave-chart-wrap::-webkit-scrollbar-thumb { background: rgba(222,242,241,0.14); border-radius: 2px; }
+  .wind-chart-wrap::-webkit-scrollbar-thumb:hover, .wave-chart-wrap::-webkit-scrollbar-thumb:hover { background: rgba(222,242,241,0.3); }
   .chart-legend { display: flex; gap: 14px; font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); margin-bottom: 8px; }
   .legend-item { display: flex; align-items: center; gap: 5px; }
   .legend-swatch { width: 12px; height: 2px; display: inline-block; }
@@ -185,10 +170,6 @@
     width: 46px; height: 6px; border-radius: 2px;
     background: linear-gradient(90deg, #fff 0%, #4fd1c5 18%, #86e08a 31%, #f2d94e 44%, #f2994e 60%, #e0524f 78%, #b06ae0 100%);
   }
-
-  .dir-strip { display: flex; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
-  .dir-strip-cell { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--ink-bright); }
-  .dir-label { font-family: var(--font-data); font-size: 9.5px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .04em; }
 
   .lbl { font-family: var(--font-data); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-dim); margin: 0 0 3px; }
   .val-text, .desc-text { font-size: 13px; color: var(--ink); line-height: 1.5; margin: 0; }
@@ -535,31 +516,17 @@ function arrowSVG(deg, size, gap) {
   </div>`;
 }
 
-// Freccina di direzione generica (usata per swell, e per le strisce di
-// direzione sotto i grafici vento/onda): il chiamante passa già il grado
-// giusto da puntare — per il vento è "dove va" (+180 dalla convenzione
-// meteo grezza), per le onde è "da dove arriva" (grado grezzo, convenzione
-// oceanografica standard tra i surfisti, es. "swell da SW").
-function directionChevronSVG(deg) {
+// Freccina di direzione unica per tutta la piattaforma: stessa forma
+// triangolare usata nei grafici a barre vento/onda (SVG nativo lì), qui
+// come stringa HTML per i contesti fuori da un canvas SVG già aperto. Il
+// chiamante passa già il grado giusto da puntare — per il vento è "dove
+// va" (+180 dalla convenzione meteo grezza), per le onde è "da dove
+// arriva" (grado grezzo, convenzione oceanografica standard tra i
+// surfisti, es. "swell da SW").
+function directionArrowSVG(deg, size) {
   if (deg == null) return "";
-  return `<svg width="14" height="14" viewBox="0 0 16 16" style="transform:rotate(${deg - 90}deg);flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4,3 L12,8 L4,13"/></svg>`;
-}
-
-// Striscia di 7 celle (una per giorno) sotto un grafico, con la freccina di
-// direzione ben distanziata invece che incollata sopra ogni singola barra
-// del grafico a step di 3 ore. `getDeg(day)` restituisce già il grado
-// pronto da puntare (il chiamante decide la convenzione, vento vs onda).
-function directionStripHTML(days, getDeg) {
-  return `
-    <div class="dir-strip">
-      ${(days || []).map((d, i) => `
-        <div class="dir-strip-cell">
-          ${directionChevronSVG(getDeg(d)) || "—"}
-          <span class="dir-label">${dayLabel(d.date, i)}</span>
-        </div>
-      `).join("")}
-    </div>
-  `;
+  const s = size || 14;
+  return `<svg width="${s}" height="${s}" viewBox="-8 -8 16 16" style="transform:rotate(${deg}deg);flex-shrink:0"><path d="M0,-6 L-4,5 L0,2 L4,5 Z" fill="currentColor"/></svg>`;
 }
 
 let state = { query: "", favoritesOnly: false };
@@ -683,7 +650,7 @@ function currentConditionsHTML(f) {
           </div>
           ${f.waveDir != null ? `
           <div class="swell-dir">
-            ${directionChevronSVG(f.waveDir)}
+            ${directionArrowSVG(f.waveDir)}
             <span>Swell da ${cardinal16(f.waveDir)} <span class="arrow-name">${classicalName(f.waveDir)}</span></span>
           </div>` : ""}
         </div>
@@ -721,73 +688,105 @@ function catmullRomPath(points) {
 // disallinearsi.
 const POINTS_PER_DAY = 8;
 
-// Tabella onda stile Surfline: righe di dati (ora, altezza, periodo,
-// direzione) per colonne di tempo scorrevoli in orizzontale — di proposito
-// un layout diverso dalle barre del grafico vento, non una sua variante.
-// L'etichetta di riga resta fissa (sticky) mentre si scorre, così si sa
-// sempre quale dato si sta leggendo anche a metà scroll.
-function renderWaveTable(root, chart) {
+// Grafico onda a barre — stessa struttura del grafico vento (colonna
+// fissa, dati sempre leggibili, scroll orizzontale, stessa freccia
+// triangolare), ma con la direzione SOPRA la bar (non sotto) e
+// periodo/energia sotto la bar invece di una tabella. Colore acceso
+// (var(--accent)) solo per onde surfabili (>1m): non è una scala continua.
+const WAVE3_COL_W = 34;
+const WAVE3_DIR_ZONE_H = 32;  // freccia + sigla, sopra la bar
+const WAVE3_BAR_TOP = WAVE3_DIR_ZONE_H + 7;
+const WAVE3_BAR_MAX_H = 90;
+const WAVE3_BAR_BASELINE = WAVE3_BAR_TOP + WAVE3_BAR_MAX_H;
+const WAVE3_BELOW_ZONE_H = 34; // periodo + energia, sotto la bar
+const WAVE3_DATE_ZONE_TOP = WAVE3_BAR_BASELINE + WAVE3_BELOW_ZONE_H + 2;
+const WAVE3_DAY_H = 15;
+const WAVE3_HOUR_H = 14;
+const WAVE3_CHART_H = WAVE3_DATE_ZONE_TOP + WAVE3_DAY_H + WAVE3_HOUR_H + 5;
+const WAVE3_NEUTRAL_FILL = "rgba(222,242,241,0.22)";
+const WAVE3_ACCENT_FILL = "#4fd1c5";
+
+function renderWaveChart(svgEl_, chart) {
+  svgEl_.innerHTML = "";
   const n = chart.length;
   if (!n) {
-    root.innerHTML = `<p class="footer-ts" style="padding:10px 0">Dati onda non disponibili</p>`;
+    svgEl_.removeAttribute("style");
+    svgEl_.setAttribute("viewBox", `0 0 640 ${WAVE3_CHART_H}`);
+    const t = svgElNS("text", { x: 320, y: WAVE3_CHART_H / 2, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 12, fill: "#6b8583" });
+    t.textContent = "Dati onda non disponibili";
+    svgEl_.appendChild(t);
     return;
   }
 
-  // Separatore leggero tra un giorno e l'altro (bordo tratteggiato sulla
-  // prima colonna di ogni nuovo giorno), non una griglia su ogni cella.
-  const dayStart = (i) => (i > 0 && i % POINTS_PER_DAY === 0 ? " wave-day-start" : "");
+  const chartW = n * WAVE3_COL_W;
+  svgEl_.setAttribute("viewBox", `0 0 ${chartW} ${WAVE3_CHART_H}`);
+  svgEl_.style.width = chartW + "px";
+  svgEl_.style.height = "auto";
+  svgEl_.style.display = "block";
+
+  const heights = chart.map((p) => p.waveHeightM ?? 0);
+  const maxH = Math.max(0.3, ...heights) * 1.2;
+  const x = (i) => i * WAVE3_COL_W + WAVE3_COL_W / 2;
+  const barH = (v) => (v / maxH) * WAVE3_BAR_MAX_H;
 
   const totalDays = Math.max(1, Math.round(n / POINTS_PER_DAY));
-  let dayHeaderCells = "";
-  for (let d = 0; d < totalDays; d++) {
-    const start = d * POINTS_PER_DAY;
-    const span = Math.min(POINTS_PER_DAY, n - start);
-    const idx = Math.min(start + Math.floor(POINTS_PER_DAY / 2), n - 1);
-    const dateStr = chart[idx].time.slice(0, 10);
-    dayHeaderCells += `<th colspan="${span}" class="${dayStart(start).trim()}">${dayLabel(dateStr, d)}</th>`;
+  for (let d = 1; d < totalDays; d++) {
+    const xd = d * POINTS_PER_DAY * WAVE3_COL_W;
+    svgEl_.appendChild(svgElNS("line", { x1: xd, x2: xd, y1: 2, y2: WAVE3_BAR_BASELINE + WAVE3_BELOW_ZONE_H, stroke: "rgba(222,242,241,0.12)", "stroke-width": 1, "stroke-dasharray": "2 3" }));
   }
 
-  let hourCells = "", heightCells = "", periodCells = "", energyCells = "", dirCells = "";
+  const barW = WAVE3_COL_W * 0.62;
   for (let i = 0; i < n; i++) {
+    const cx = x(i);
     const p = chart[i];
-    const cls = dayStart(i);
-    const time = new Date(p.time);
-    hourCells += `<td class="${cls.trim()}">${String(time.getHours()).padStart(2, "0")}</td>`;
 
-    // Colore acceso solo per le onde davvero surfabili (>1m): l'unico
-    // colore usato è quello base della piattaforma, non una scala.
-    const isBig = p.waveHeightM != null && p.waveHeightM > 1;
-    heightCells += `<td class="${cls.trim()}">${p.waveHeightM != null
-      ? (isBig ? `<span class="wave-chip">${p.waveHeightM.toFixed(1)}</span>` : p.waveHeightM.toFixed(1))
-      : "—"}</td>`;
+    // Direzione sopra la bar: stessa freccia triangolare del grafico vento,
+    // grado grezzo (punta da dove viene lo swell — convenzione onda).
+    const dir = p.waveDirectionDeg;
+    if (dir != null) {
+      const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},9) rotate(${dir})` });
+      g.appendChild(svgElNS("path", { d: "M0,-6 L-4,5 L0,2 L4,5 Z", fill: "#f4fdfc" }));
+      svgEl_.appendChild(g);
 
-    periodCells += `<td class="${cls.trim()}">${p.wavePeriodS != null ? Math.round(p.wavePeriodS) : "—"}</td>`;
+      const dirLbl = svgElNS("text", { x: cx, y: 26, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 9, fill: "#9be3de" });
+      dirLbl.textContent = cardinal16(dir);
+      svgEl_.appendChild(dirLbl);
+    }
 
-    // Energia dell'onda (kJ): niente colore, solo grassetto oltre 100.
+    // Bar altezza onda: colore acceso solo oltre 1m, il resto neutro.
+    const h = Math.max(1, barH(heights[i]));
+    const yTop = WAVE3_BAR_BASELINE - h;
+    svgEl_.appendChild(svgElNS("rect", {
+      x: (cx - barW / 2).toFixed(1), y: yTop.toFixed(1),
+      width: barW.toFixed(1), height: h.toFixed(1),
+      fill: heights[i] > 1 ? WAVE3_ACCENT_FILL : WAVE3_NEUTRAL_FILL, rx: 2,
+    }));
+
+    // Sotto la bar: periodo ed energia (grassetto oltre 100 kJ, niente colore).
+    const periodLbl = svgElNS("text", { x: cx, y: WAVE3_BAR_BASELINE + 14, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 10, fill: "#9be3de" });
+    periodLbl.textContent = p.wavePeriodS != null ? Math.round(p.wavePeriodS) : "—";
+    svgEl_.appendChild(periodLbl);
+
     const energyKJ = p.waveEnergyKJ != null ? Math.round(p.waveEnergyKJ) : null;
-    energyCells += `<td class="${cls.trim()}">${energyKJ != null
-      ? (energyKJ > 100 ? `<span class="wave-energy-strong">${energyKJ}</span>` : energyKJ)
-      : "—"}</td>`;
+    const energyLbl = svgElNS("text", { x: cx, y: WAVE3_BAR_BASELINE + 28, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": energyKJ != null && energyKJ > 100 ? 700 : 400, "font-size": 10, fill: "#f4fdfc" });
+    energyLbl.textContent = energyKJ != null ? energyKJ : "—";
+    svgEl_.appendChild(energyLbl);
 
-    // Direzione: stessa freccina e convenzione (grado grezzo, punta da dove
-    // viene lo swell) già usata altrove nel sito per le onde.
-    dirCells += `<td class="${cls.trim()}">${p.waveDirectionDeg != null ? directionChevronSVG(p.waveDirectionDeg) : "—"}</td>`;
+    // Ora, in fondo insieme al nome del giorno.
+    const time = new Date(p.time);
+    const hourLbl = svgElNS("text", { x: cx, y: WAVE3_DATE_ZONE_TOP + WAVE3_DAY_H + WAVE3_HOUR_H - 3, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 9, fill: "#6b8583" });
+    hourLbl.textContent = String(time.getHours()).padStart(2, "0");
+    svgEl_.appendChild(hourLbl);
   }
 
-  root.innerHTML = `
-    <table class="wave-table">
-      <thead>
-        <tr class="wave-table-days"><th class="wave-th-label"></th>${dayHeaderCells}</tr>
-        <tr class="wave-table-hours"><th class="wave-th-label">Ora</th>${hourCells}</tr>
-      </thead>
-      <tbody>
-        <tr><th class="wave-th-label">Altezza (m)</th>${heightCells}</tr>
-        <tr><th class="wave-th-label">Periodo (s)</th>${periodCells}</tr>
-        <tr><th class="wave-th-label">Energia (kJ)</th>${energyCells}</tr>
-        <tr><th class="wave-th-label">Direzione</th>${dirCells}</tr>
-      </tbody>
-    </table>
-  `;
+  for (let d = 0; d < totalDays; d++) {
+    const idx = Math.min(d * POINTS_PER_DAY + Math.floor(POINTS_PER_DAY / 2), n - 1);
+    const dateStr = chart[idx].time.slice(0, 10);
+    const cx = (d * POINTS_PER_DAY + POINTS_PER_DAY / 2) * WAVE3_COL_W;
+    const dayLbl = svgElNS("text", { x: cx, y: WAVE3_DATE_ZONE_TOP + WAVE3_DAY_H - 4, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 9.5, fill: "#9be3de" });
+    dayLbl.textContent = dayLabel(dateStr, d);
+    svgEl_.appendChild(dayLbl);
+  }
 }
 
 function svgElNS(tag, attrs) {
@@ -824,21 +823,16 @@ function lerpRgb(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1
 function rgbCss(rgb) { return `rgb(${Math.round(rgb[0])},${Math.round(rgb[1])},${Math.round(rgb[2])})`; }
 
 // Grafico vento denso: colonna a larghezza fissa (non percentuale) per
-// ogni punto a 3 ore, abbastanza larga da contenere freccia direzione +
-// velocità + raffiche sempre leggibili sopra la bar, più l'ora sotto e il
-// nome del giorno una volta per gruppo. Niente più hover/tap per vedere i
-// dati: sono già tutti stampati, il che elimina anche la fragilità del
-// touch che avevamo con il vecchio grafico compresso. Il contenitore
-// scorre in orizzontale su qualunque schermo — con 56 colonne larghe è
-// naturale che non ci stia mai tutto in una volta, desktop incluso.
-// Ordine dall'alto in basso: barre, direzione (freccia + sigla), tabella
-// vento/raffiche, date/ore in fondo.
+// ogni punto a 3 ore. Niente più barre (ora esclusive del grafico onda,
+// per non avere due grafici a barre identici nello stesso pannello
+// Forecast): la colonna è freccia direzione + sigla in alto, poi la
+// tabella vento/raffiche, poi ora/giorno in fondo. Niente hover/tap per
+// vedere i dati: sono già tutti stampati. Il contenitore scorre in
+// orizzontale su qualunque schermo — con 56 colonne larghe non ci sta mai
+// tutto in una volta, desktop incluso.
 const WIND2_COL_W = 34;
-const WIND2_BAR_PAD_TOP = 7;
-const WIND2_BAR_MAX_H = 108;
-const WIND2_BAR_BASELINE = WIND2_BAR_PAD_TOP + WIND2_BAR_MAX_H; // 115, base delle bar
-const WIND2_DIR_ZONE_H = 32;  // freccia + sigla (N, NE, ...), sotto le bar
-const WIND2_TABLE_TOP = WIND2_BAR_BASELINE + WIND2_DIR_ZONE_H + 7;
+const WIND2_DIR_ZONE_H = 32;  // freccia + sigla (N, NE, ...), in alto
+const WIND2_TABLE_TOP = WIND2_DIR_ZONE_H + 7;
 const WIND2_CELL_H = 24;      // riga "tabella" vento
 const WIND2_GCELL_H = 22;     // riga "tabella" raffiche
 const WIND2_TABLE_BOTTOM = WIND2_TABLE_TOP + WIND2_CELL_H + WIND2_GCELL_H;
@@ -874,9 +868,7 @@ function renderWindChart(svgEl_, windChart) {
 
   const speeds = windChart.map((p) => p.windSpeedKn ?? 0);
   const gusts = windChart.map((p) => p.windGustsKn ?? 0);
-  const maxV = Math.max(5, ...gusts) * 1.1;
   const x = (i) => i * WIND2_COL_W + WIND2_COL_W / 2;
-  const barH = (v) => (v / maxV) * WIND2_BAR_MAX_H;
 
   const totalDays = Math.max(1, Math.round(n / POINTS_PER_DAY));
   for (let d = 1; d < totalDays; d++) {
@@ -884,29 +876,19 @@ function renderWindChart(svgEl_, windChart) {
     svgEl_.appendChild(svgElNS("line", { x1: xd, x2: xd, y1: 2, y2: WIND2_TABLE_BOTTOM, stroke: "rgba(222,242,241,0.12)", "stroke-width": 1, "stroke-dasharray": "2 3" }));
   }
 
-  const barW = WIND2_COL_W * 0.62;
   for (let i = 0; i < n; i++) {
     const cx = x(i);
     const colX = i * WIND2_COL_W;
 
-    // Bar, altezza in base alla velocità, colore in base alla stessa scala.
-    const h = Math.max(1, barH(speeds[i]));
-    const yTop = WIND2_BAR_BASELINE - h;
-    svgEl_.appendChild(svgElNS("rect", {
-      x: (cx - barW / 2).toFixed(1), y: yTop.toFixed(1),
-      width: barW.toFixed(1), height: h.toFixed(1),
-      fill: windColor(speeds[i]), opacity: 0.85, rx: 2,
-    }));
-
-    // Direzione sotto le bar: freccia (verso dove soffia il vento) più
-    // sigla (N, NE, ...) della direzione di provenienza, sotto la freccia.
+    // Direzione in alto: stessa freccia triangolare usata ovunque nel
+    // sito, più sigla (N, NE, ...) della direzione di provenienza.
     const dir = windChart[i].windDirectionDeg;
     if (dir != null) {
-      const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},${WIND2_BAR_BASELINE + 9}) rotate(${dir + 180})` });
+      const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},9) rotate(${dir + 180})` });
       g.appendChild(svgElNS("path", { d: "M0,-6 L-4,5 L0,2 L4,5 Z", fill: "#f4fdfc" }));
       svgEl_.appendChild(g);
 
-      const dirLbl = svgElNS("text", { x: cx, y: WIND2_BAR_BASELINE + 26, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 9, fill: "#9be3de" });
+      const dirLbl = svgElNS("text", { x: cx, y: 26, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 9, fill: "#9be3de" });
       dirLbl.textContent = cardinal16(dir);
       svgEl_.appendChild(dirLbl);
     }
@@ -948,30 +930,34 @@ function renderWindChart(svgEl_, windChart) {
   }
 }
 
-function windChartSectionHTML() {
+// Vento e mare uniti in un solo banner Forecast: due sotto-sezioni con lo
+// stesso linguaggio visivo (colonne dense, scroll orizzontale, stessa
+// freccia triangolare per la direzione), separate da un divisore invece
+// di due pannelli distinti — coerente con il banner Live unificato sopra.
+function forecastSectionHTML() {
   return `
     <section class="panel">
-      <p class="panel-label" style="margin-bottom:4px">Vento — 7 giorni</p>
-      <div class="chart-legend" style="font-size:12px">
-        <span class="legend-item"><span class="legend-swatch legend-swatch--gradient"></span>Scala colore (kn)</span>
-        <span class="legend-item">Riga sopra: vento · Riga sotto: raffiche</span>
+      <p class="panel-label" style="margin-bottom:4px">Forecast — 7 giorni</p>
+      <div class="forecast-sub">
+        <p class="forecast-sub-label">Vento</p>
+        <div class="chart-legend" style="font-size:12px">
+          <span class="legend-item"><span class="legend-swatch legend-swatch--gradient"></span>Scala colore (kn)</span>
+          <span class="legend-item">Riga sopra: vento · Riga sotto: raffiche</span>
+        </div>
+        <div class="wind-chart-wrap" id="windChartWrap">
+          <svg id="windChartSvg"></svg>
+        </div>
       </div>
-      <div class="wind-chart-wrap" id="windChartWrap">
-        <svg id="windChartSvg"></svg>
+      <div class="forecast-sub forecast-sub--divider">
+        <p class="forecast-sub-label">Mare</p>
+        <div class="chart-legend" style="font-size:12px">
+          <span class="legend-item"><span class="legend-swatch" style="background:var(--accent);border-radius:2px;width:12px;height:8px"></span>Onda oltre 1m</span>
+          <span class="legend-item">Sopra: direzione swell · Sotto: periodo (s) / energia (kJ, grassetto oltre 100)</span>
+        </div>
+        <div class="wave-chart-wrap" id="waveChartWrap">
+          <svg id="waveChartSvg"></svg>
+        </div>
       </div>
-    </section>
-  `;
-}
-
-function waveChartSectionHTML() {
-  return `
-    <section class="panel">
-      <p class="panel-label" style="margin-bottom:4px">Mare — 7 giorni</p>
-      <div class="chart-legend" style="font-size:12px">
-        <span class="legend-item"><span class="legend-swatch" style="background:var(--accent);border-radius:2px;width:12px;height:8px"></span>Onda oltre 1m</span>
-        <span class="legend-item">Freccia: da dove viene lo swell</span>
-      </div>
-      <div class="wave-table-wrap" id="waveTableWrap"></div>
     </section>
   `;
 }
@@ -1159,12 +1145,9 @@ function openDrawer(spot) {
       fetchWeeklyData(spot)
         .then(({ chart, windChart }) => {
           if (token !== openToken) return;
-          document.getElementById("threeDaySection").innerHTML = `
-            ${windChartSectionHTML()}
-            ${waveChartSectionHTML()}
-          `;
+          document.getElementById("threeDaySection").innerHTML = forecastSectionHTML();
           renderWindChart(document.getElementById("windChartSvg"), windChart || []);
-          renderWaveTable(document.getElementById("waveTableWrap"), chart);
+          renderWaveChart(document.getElementById("waveChartSvg"), chart);
         })
         .catch(() => {
           if (token !== openToken) return;
