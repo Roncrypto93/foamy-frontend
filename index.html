@@ -868,16 +868,24 @@ function rgbCss(rgb) { return `rgb(${Math.round(rgb[0])},${Math.round(rgb[1])},$
 // scorre in orizzontale su qualunque schermo — con 56 colonne larghe è
 // naturale che non ci stia mai tutto in una volta, desktop incluso.
 const WIND2_COL_W = 34;
-const WIND2_CHART_H = 200;
-const WIND2_DAY_H = 16;       // riga nome giorno, in alto
-const WIND2_CELL_H = 20;      // riga "tabella" vento
-const WIND2_GCELL_H = 18;     // riga "tabella" raffiche
-const WIND2_TABLE_BOTTOM = WIND2_DAY_H + WIND2_CELL_H + WIND2_GCELL_H; // 54
+const WIND2_CHART_H = 210;
+const WIND2_DAY_H = 15;       // riga nome giorno, in alto
+const WIND2_HOUR_H = 14;      // riga ora, subito sotto la data
+const WIND2_TABLE_TOP = WIND2_DAY_H + WIND2_HOUR_H; // 29
+const WIND2_CELL_H = 24;      // riga "tabella" vento (ingrandita)
+const WIND2_GCELL_H = 22;     // riga "tabella" raffiche (ingrandita)
+const WIND2_TABLE_BOTTOM = WIND2_TABLE_TOP + WIND2_CELL_H + WIND2_GCELL_H; // 75
 const WIND2_BAR_TOP = WIND2_TABLE_BOTTOM + 7;
-const WIND2_BOTTOM_RESERVED = 34; // freccia direzione + ora, sotto le bar
+const WIND2_BOTTOM_RESERVED = 20; // solo freccia direzione, sotto le bar
 const WIND2_PLOT_BOTTOM = WIND2_CHART_H - WIND2_BOTTOM_RESERVED;
 const WIND2_BAR_MAX_H = WIND2_PLOT_BOTTOM - WIND2_BAR_TOP;
 const WIND2_INK_ON_COLOR = "#0b0f19";
+// Vento e raffiche condividono lo stesso font: stessa famiglia, peso,
+// dimensione — le due righe della tabella devono leggersi come coppia.
+const WIND2_CELL_FONT = { "font-family": "IBM Plex Mono", "font-weight": 700, "font-size": 12.5 };
+// Bordo scuro sottile tra una colonna e l'altra della tabella, per
+// separare bene i numeri quando due colonne adiacenti hanno colori simili.
+const WIND2_CELL_STROKE = { stroke: "rgba(11,15,25,0.4)", "stroke-width": 1 };
 
 function renderWindChart(svgEl_, windChart) {
   svgEl_.innerHTML = "";
@@ -914,23 +922,29 @@ function renderWindChart(svgEl_, windChart) {
     const cx = x(i);
     const colX = i * WIND2_COL_W;
 
+    // Ora, in alto insieme al nome del giorno (una per colonna).
+    const time = new Date(windChart[i].time);
+    const hourLbl = svgElNS("text", { x: cx, y: WIND2_DAY_H + WIND2_HOUR_H - 3, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 9, fill: "#6b8583" });
+    hourLbl.textContent = String(time.getHours()).padStart(2, "0");
+    svgEl_.appendChild(hourLbl);
+
     // Tabella stile Windguru: due celle piene, vento sopra e raffiche
-    // sotto, colorate con la stessa scala del vento (a bordo colonna,
-    // senza spazi, per leggersi come una riga di tabella continua).
+    // sotto, colorate con la stessa scala del vento, con un bordo sottile
+    // tra le colonne per separare bene i numeri.
     svgEl_.appendChild(svgElNS("rect", {
-      x: colX, y: WIND2_DAY_H, width: WIND2_COL_W, height: WIND2_CELL_H,
-      fill: windColor(speeds[i]),
+      x: colX, y: WIND2_TABLE_TOP, width: WIND2_COL_W, height: WIND2_CELL_H,
+      fill: windColor(speeds[i]), ...WIND2_CELL_STROKE,
     }));
-    const speedLbl = svgElNS("text", { x: cx, y: WIND2_DAY_H + WIND2_CELL_H / 2 + 4, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 700, "font-size": 11.5, fill: WIND2_INK_ON_COLOR });
+    const speedLbl = svgElNS("text", { x: cx, y: WIND2_TABLE_TOP + WIND2_CELL_H / 2 + 4.4, "text-anchor": "middle", ...WIND2_CELL_FONT, fill: WIND2_INK_ON_COLOR });
     speedLbl.textContent = speeds[i] != null ? Math.round(speeds[i]) : "—";
     svgEl_.appendChild(speedLbl);
 
-    const gy = WIND2_DAY_H + WIND2_CELL_H + 1;
+    const gy = WIND2_TABLE_TOP + WIND2_CELL_H;
     svgEl_.appendChild(svgElNS("rect", {
       x: colX, y: gy, width: WIND2_COL_W, height: WIND2_GCELL_H,
-      fill: windColor(gusts[i]),
+      fill: windColor(gusts[i]), ...WIND2_CELL_STROKE,
     }));
-    const gustLbl = svgElNS("text", { x: cx, y: gy + WIND2_GCELL_H / 2 + 3.5, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 10, fill: WIND2_INK_ON_COLOR });
+    const gustLbl = svgElNS("text", { x: cx, y: gy + WIND2_GCELL_H / 2 + 4.4, "text-anchor": "middle", ...WIND2_CELL_FONT, fill: WIND2_INK_ON_COLOR });
     gustLbl.textContent = gusts[i] != null ? Math.round(gusts[i]) : "—";
     svgEl_.appendChild(gustLbl);
 
@@ -946,15 +960,10 @@ function renderWindChart(svgEl_, windChart) {
     // Direzione sotto le bar (freccia verso dove soffia il vento).
     const dir = windChart[i].windDirectionDeg;
     if (dir != null) {
-      const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},${WIND2_PLOT_BOTTOM + 12}) rotate(${dir + 180})` });
+      const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},${WIND2_PLOT_BOTTOM + 10}) rotate(${dir + 180})` });
       g.appendChild(svgElNS("path", { d: "M0,-6 L-4,5 L0,2 L4,5 Z", fill: "#f4fdfc" }));
       svgEl_.appendChild(g);
     }
-
-    const time = new Date(windChart[i].time);
-    const hourLbl = svgElNS("text", { x: cx, y: WIND2_CHART_H - 5, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 9, fill: "#6b8583" });
-    hourLbl.textContent = String(time.getHours()).padStart(2, "0");
-    svgEl_.appendChild(hourLbl);
   }
 
   for (let d = 0; d < totalDays; d++) {
