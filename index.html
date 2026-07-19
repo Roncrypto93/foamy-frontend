@@ -40,8 +40,6 @@
   .drawer-in { animation: drawerIn .35s cubic-bezier(.22,1,.36,1) forwards; }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
   .fade-up { animation: fadeUp .4s ease-out forwards; }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
-  .live-dot { animation: pulse 1.4s ease-in-out infinite; }
   @media (prefers-reduced-motion: reduce) {
     * { animation-duration: .01ms !important; }
   }
@@ -102,16 +100,11 @@
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; }
   .panel-label { font-family: var(--font-data); font-weight: 600; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-bright); margin: 0 0 12px; }
 
-  /* Punto rosso pulsante: segnala che vento/swell qui sopra sono le
+  /* Punto rosso statico: segnala che vento/swell qui sotto sono le
      condizioni attuali (in tempo reale), non parte del forecast a 7 giorni
      più sotto nello stesso pannello. */
-  .live-badge { display: flex; align-items: center; gap: 6px; font-family: var(--font-data); font-weight: 700; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 10px; }
-  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #e0524f; flex-shrink: 0; animation: live-pulse 1.8s ease-out infinite; }
-  @keyframes live-pulse {
-    0% { box-shadow: 0 0 0 0 rgba(224,82,79,0.5); }
-    70% { box-shadow: 0 0 0 6px rgba(224,82,79,0); }
-    100% { box-shadow: 0 0 0 0 rgba(224,82,79,0); }
-  }
+  .live-badge { display: flex; align-items: center; gap: 6px; font-family: var(--font-data); font-weight: 700; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 14px; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #e0524f; flex-shrink: 0; }
 
   .wind-card { display: flex; align-items: center; gap: 22px; }
   .arrow-widget { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; width: 74px; }
@@ -146,8 +139,12 @@
   .tide-trend.rising { color: var(--accent); }
   .tide-trend.falling { color: var(--alert); }
 
-  .top-banners { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  @media (max-width: 640px) { .top-banners { grid-template-columns: 1fr; } }
+  .top-banners { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .swell-block { padding-left: 20px; border-left: 1px solid var(--border); }
+  @media (max-width: 640px) {
+    .top-banners { grid-template-columns: 1fr; gap: 16px; }
+    .swell-block { padding-left: 0; border-left: none; padding-top: 16px; border-top: 1px solid var(--border); }
+  }
 
   /* Grafico marea: solo 24 punti (un giorno), niente bisogno dello scroll
      orizzontale riservato ai grafici a 7 giorni — classe separata apposta. */
@@ -660,36 +657,38 @@ function dayLabel(dateStr, idx) {
 
 function currentConditionsHTML(f) {
   return `
-    <div class="live-badge"><span class="live-dot"></span>Live</div>
-    <div class="top-banners">
-      <section class="panel wind-card">
-        ${arrowSVG(f.windDir, 92)}
-        <div class="wind-numbers" style="flex:1">
-          <p class="panel-label" style="margin:0">Vento</p>
-          <div class="num-primary"><span class="val tabular">${f.windSpeed}</span><span class="unit">kn</span></div>
-          <div class="num-secondary">Raffiche <b class="tabular">${f.windGusts}</b> kn</div>
-          <div class="arrow-cardinal tabular" style="margin-top:2px">${cardinal16(f.windDir)} <span class="arrow-name">${classicalName(f.windDir)}</span></div>
-        </div>
-      </section>
-      <section class="panel">
-        <p class="panel-label">Swell</p>
-        <div class="wave-top">
-          <div class="wave-height-group">
-            <div class="wave-height"><span class="val tabular">${f.height ?? "—"}</span><span class="unit">m</span></div>
-            <div class="wave-period"><span class="val tabular">${f.period ?? "—"}</span><span class="unit">s periodo</span></div>
-          </div>
-          <div class="kj-readout">
-            <div class="val tabular">${f.energy ?? "—"}</div>
-            <div class="lbl">kJ energia</div>
+    <section class="panel">
+      <div class="live-badge"><span class="live-dot"></span>Live</div>
+      <div class="top-banners">
+        <div class="wind-card">
+          ${arrowSVG(f.windDir, 92)}
+          <div class="wind-numbers" style="flex:1">
+            <p class="panel-label" style="margin:0">Vento</p>
+            <div class="num-primary"><span class="val tabular">${f.windSpeed}</span><span class="unit">kn</span></div>
+            <div class="num-secondary">Raffiche <b class="tabular">${f.windGusts}</b> kn</div>
+            <div class="arrow-cardinal tabular" style="margin-top:2px">${cardinal16(f.windDir)} <span class="arrow-name">${classicalName(f.windDir)}</span></div>
           </div>
         </div>
-        ${f.waveDir != null ? `
-        <div class="swell-dir">
-          ${directionChevronSVG(f.waveDir)}
-          <span>Swell da ${cardinal16(f.waveDir)} <span class="arrow-name">${classicalName(f.waveDir)}</span></span>
-        </div>` : ""}
-      </section>
-    </div>
+        <div class="swell-block">
+          <p class="panel-label">Swell</p>
+          <div class="wave-top">
+            <div class="wave-height-group">
+              <div class="wave-height"><span class="val tabular">${f.height ?? "—"}</span><span class="unit">m</span></div>
+              <div class="wave-period"><span class="val tabular">${f.period ?? "—"}</span><span class="unit">s periodo</span></div>
+            </div>
+            <div class="kj-readout">
+              <div class="val tabular">${f.energy ?? "—"}</div>
+              <div class="lbl">kJ energia</div>
+            </div>
+          </div>
+          ${f.waveDir != null ? `
+          <div class="swell-dir">
+            ${directionChevronSVG(f.waveDir)}
+            <span>Swell da ${cardinal16(f.waveDir)} <span class="arrow-name">${classicalName(f.waveDir)}</span></span>
+          </div>` : ""}
+        </div>
+      </div>
+    </section>
   `;
 }
 
