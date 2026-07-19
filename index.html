@@ -148,8 +148,6 @@
 
   .top-banners { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   @media (max-width: 640px) { .top-banners { grid-template-columns: 1fr; } }
-  .panel--wind { border-top: 2px solid var(--accent); }
-  .panel--swell { border-top: 2px solid var(--accent-soft); }
 
   /* Grafico marea: solo 24 punti (un giorno), niente bisogno dello scroll
      orizzontale riservato ai grafici a 7 giorni — classe separata apposta. */
@@ -664,7 +662,7 @@ function currentConditionsHTML(f) {
   return `
     <div class="live-badge"><span class="live-dot"></span>Live</div>
     <div class="top-banners">
-      <section class="panel panel--wind wind-card">
+      <section class="panel wind-card">
         ${arrowSVG(f.windDir, 92)}
         <div class="wind-numbers" style="flex:1">
           <p class="panel-label" style="margin:0">Vento</p>
@@ -673,7 +671,7 @@ function currentConditionsHTML(f) {
           <div class="arrow-cardinal tabular" style="margin-top:2px">${cardinal16(f.windDir)} <span class="arrow-name">${classicalName(f.windDir)}</span></div>
         </div>
       </section>
-      <section class="panel panel--swell">
+      <section class="panel">
         <p class="panel-label">Swell</p>
         <div class="wave-top">
           <div class="wave-height-group">
