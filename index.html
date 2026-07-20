@@ -293,9 +293,14 @@ function classifySeaState(height) {
   return ["Forza 5 - Agitato", "#e0524f", "Agitato", 5];
 }
 
+// Indice energia in stile Surf-Forecast (altezza² × periodo × 10), non la
+// formula oceanografica reale (che darebbe kW/m a una cifra). Costante
+// tarata confrontando punto per punto con i valori orari mostrati da
+// surf-forecast.com per lo stesso spot — vedi calculateWaveEnergyKJ nel
+// backend per la stessa formula lato server.
 function energyFrom(height, period) {
   if (height == null || period == null) return null;
-  return Math.round(0.5 * height * height * period * 10);
+  return Math.round(height * height * period * 10);
 }
 
 // Una raffica non può mai essere fisicamente più bassa della velocità
