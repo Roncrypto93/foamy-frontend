@@ -232,6 +232,7 @@
         <span class="brand-tag">Forecast</span>
       </div>
     </div>
+    <button class="chip-btn" id="favShortcut" style="display:none">★ Preferiti</button>
     <div class="filters" id="filtersBar" style="display:none">
       <div class="search-row">
         <input id="search" class="search-input" type="text" placeholder="Cerca spot…" autocomplete="off" />
@@ -245,8 +246,8 @@
     <div id="regionGrid" class="region-grid"></div>
     <div id="grid" class="grid"></div>
     <div id="emptyState" style="display:none">
-      <p>Nessuno spot per questi filtri</p>
-      <p>Prova a togliere qualche filtro.</p>
+      <p id="emptyTitle">Nessuno spot per questi filtri</p>
+      <p id="emptySubtitle">Prova a togliere qualche filtro.</p>
       <button id="resetFilters">Azzera filtri</button>
     </div>
   </main>
@@ -581,6 +582,11 @@ function directionArrowSVG(deg, size) {
   return `<svg width="${s}" height="${s}" viewBox="-8 -8 16 16" style="transform:rotate(${deg}deg);flex-shrink:0"><path d="M0,-6 L-4,5 L0,2 L4,5 Z" fill="currentColor"/></svg>`;
 }
 
+// Valore speciale di state.region per la scorciatoia "★ Preferiti" in home:
+// mostra gli spot preferiti di TUTTE le regioni insieme, invece di dover
+// prima entrare in una regione specifica (i preferiti sono globali, salvati
+// in localStorage senza distinzione di regione).
+const FAVORITES_VIEW = "__favorites__";
 let state = { query: "", favoritesOnly: false, region: null };
 
 const FAV_KEY = "foamy_favorites";
@@ -615,24 +621,29 @@ function starIconSVG(filled) {
   return `<svg width="18" height="18" viewBox="0 0 24 24" fill="${filled ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 17.6l-5.9 3.1 1.2-6.6-4.8-4.6 6.6-.9L12 2.5z"/></svg>`;
 }
 
-// Ogni spot appartiene a una regione (oggi solo Puglia, dato che è l'unica
-// coperta) — non c'è ancora un campo "region" nei dati del backend, quindi
-// finché non lo aggiunge si usa questo default. Il resto (raggruppamento,
-// card, mappe stilizzate) è già pronto per più regioni.
+// Ogni spot appartiene a una regione — il backend la fornisce già
+// (Puglia/Sicilia), questo fallback serve solo per dati più vecchi che ne
+// fossero ancora privi.
 function spotRegion(spot) { return spot.region || "Puglia"; }
 
 // Sagoma stilizzata (non geograficamente precisa, solo riconoscibile a
-// colpo d'occhio) per regione — Puglia: sperone del Gargano in alto,
+// colpo d'occhio) per regione, ciascuna con il proprio viewBox visto che
+// Puglia (stretta e verticale) e Sicilia (larga e orizzontale) hanno
+// proporzioni molto diverse — Puglia: sperone del Gargano in alto,
 // rientranza del golfo di Taranto sul lato Ionio, tacco del Salento che si
-// restringe fino a Leuca in fondo. Le regioni non ancora mappate usano una
-// sagoma "stivale d'Italia" generica come segnaposto.
+// restringe fino a Leuca in fondo. Sicilia: le tre punte della Trinacria
+// (Capo Peloro a NE presso Messina, Capo Boeo/Lilibeo a O presso Marsala,
+// Capo Passero a SE), costa nord frastagliata verso il golfo di
+// Castellammare. Le regioni non ancora mappate usano una sagoma "stivale
+// d'Italia" generica come segnaposto.
 const REGION_MAPS = {
-  "Puglia": "M85,12 L55,4 L40,18 L48,30 L56,50 L52,72 L56,92 L50,112 L52,130 L42,150 L32,135 L26,115 L38,98 L24,82 L30,62 L18,45 L26,28 Z",
-  "_default": "M60,4 C72,4 70,16 78,22 C86,28 84,40 76,46 C82,54 80,66 70,70 C74,80 68,92 58,94 C62,104 56,116 46,116 C48,126 40,136 30,132 C24,140 12,138 10,128 C4,124 6,112 14,108 C8,100 12,88 22,86 C16,76 22,64 32,62 C28,50 36,38 48,38 C44,26 52,14 60,4 Z",
+  "Puglia": { viewBox: "0 0 100 156", d: "M85,12 L55,4 L40,18 L48,30 L56,50 L52,72 L56,92 L50,112 L52,130 L42,150 L32,135 L26,115 L38,98 L24,82 L30,62 L18,45 L26,28 Z" },
+  "Sicilia": { viewBox: "0 0 160 100", d: "M148,20 L128,10 L104,16 L82,8 L60,16 L44,8 L26,6 L8,32 L12,54 L22,72 L38,82 L56,92 L78,88 L98,76 L116,62 L132,44 L142,30 Z" },
+  "_default": { viewBox: "0 0 100 156", d: "M60,4 C72,4 70,16 78,22 C86,28 84,40 76,46 C82,54 80,66 70,70 C74,80 68,92 58,94 C62,104 56,116 46,116 C48,126 40,136 30,132 C24,140 12,138 10,128 C4,124 6,112 14,108 C8,100 12,88 22,86 C16,76 22,64 32,62 C28,50 36,38 48,38 C44,26 52,14 60,4 Z" },
 };
 function regionMapSVG(name) {
-  const d = REGION_MAPS[name] || REGION_MAPS._default;
-  return `<svg class="region-map" viewBox="0 0 100 156" role="img" aria-label="Mappa ${name}"><path d="${d}"/></svg>`;
+  const map = REGION_MAPS[name] || REGION_MAPS._default;
+  return `<svg class="region-map" viewBox="${map.viewBox}" role="img" aria-label="Mappa ${name}"><path d="${map.d}"/></svg>`;
 }
 
 function regionCard(name, count) {
@@ -680,15 +691,18 @@ function render() {
   const empty = document.getElementById("emptyState");
   const filtersBar = document.getElementById("filtersBar");
   const backBtn = document.getElementById("backToRegions");
+  const favShortcut = document.getElementById("favShortcut");
 
   if (!state.region) {
-    // Livello 1: scelta della regione — niente ricerca/preferiti qui,
-    // riguardano gli spot dentro una regione.
+    // Livello 1: scelta della regione — niente ricerca/preferiti qui
+    // (riguardano gli spot dentro una regione), solo la scorciatoia ai
+    // preferiti globali in alto a destra.
     regionGrid.style.display = "grid";
     grid.style.display = "none";
     empty.style.display = "none";
     filtersBar.style.display = "none";
     backBtn.style.display = "none";
+    favShortcut.style.display = "inline-block";
     regionGrid.innerHTML = "";
     const counts = new Map();
     SPOTS.forEach(s => { const r = spotRegion(s); counts.set(r, (counts.get(r) || 0) + 1); });
@@ -698,22 +712,31 @@ function render() {
     return;
   }
 
-  // Livello 2: griglia spot della regione scelta, stesso comportamento di
-  // ricerca/preferiti di sempre.
+  // Livello 2: griglia spot — o della regione scelta, o (con la scorciatoia
+  // "★ Preferiti" in home) di tutti i preferiti a prescindere dalla
+  // regione. Stesso comportamento di ricerca di sempre in entrambi i casi;
+  // il chip "★ Preferiti" dentro una regione resta utile per filtrare
+  // ulteriormente, ma non ha senso nella vista preferiti (è già tutto
+  // filtrato), quindi lì si nasconde.
+  const isFavView = state.region === FAVORITES_VIEW;
   regionGrid.style.display = "none";
   filtersBar.style.display = "flex";
   backBtn.style.display = "inline-flex";
-  renderChips();
+  favShortcut.style.display = "none";
+  document.getElementById("favBar").style.display = isFavView ? "none" : "flex";
+  if (!isFavView) renderChips();
   grid.innerHTML = "";
   const q = state.query.trim().toLowerCase();
   const filtered = SPOTS.filter(s =>
-    spotRegion(s) === state.region &&
+    (isFavView ? isFavorite(s.id) : spotRegion(s) === state.region) &&
     (!q || s.name.toLowerCase().includes(q)) &&
     (!state.favoritesOnly || isFavorite(s.id))
   ).sort((a, b) => a.name.localeCompare(b.name, "it"));
   if (filtered.length === 0) {
     grid.style.display = "none";
     empty.style.display = "block";
+    document.getElementById("emptyTitle").textContent = isFavView && !q ? "Nessuno spot preferito" : "Nessuno spot per questi filtri";
+    document.getElementById("emptySubtitle").textContent = isFavView && !q ? "Apri uno spot e tocca la stella per aggiungerlo qui." : "Prova a togliere qualche filtro.";
   } else {
     grid.style.display = "grid";
     empty.style.display = "none";
@@ -721,6 +744,7 @@ function render() {
   }
 }
 document.getElementById("backToRegions").onclick = () => { state.region = null; state.query = ""; state.favoritesOnly = false; document.getElementById("search").value = ""; render(); };
+document.getElementById("favShortcut").onclick = () => { state.region = FAVORITES_VIEW; render(); };
 document.getElementById("resetFilters").onclick = () => { state.query = ""; state.favoritesOnly = false; document.getElementById("search").value = ""; render(); };
 document.getElementById("search").addEventListener("input", (e) => { state.query = e.target.value; render(); });
 
