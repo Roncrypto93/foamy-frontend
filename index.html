@@ -626,19 +626,26 @@ function starIconSVG(filled) {
 // fossero ancora privi.
 function spotRegion(spot) { return spot.region || "Puglia"; }
 
-// Sagoma stilizzata (non geograficamente precisa, solo riconoscibile a
-// colpo d'occhio) per regione, ciascuna con il proprio viewBox visto che
-// Puglia (stretta e verticale) e Sicilia (larga e orizzontale) hanno
-// proporzioni molto diverse — Puglia: sperone del Gargano in alto,
-// rientranza del golfo di Taranto sul lato Ionio, tacco del Salento che si
-// restringe fino a Leuca in fondo. Sicilia: le tre punte della Trinacria
-// (Capo Peloro a NE presso Messina, Capo Boeo/Lilibeo a O presso Marsala,
-// Capo Passero a SE), costa nord frastagliata verso il golfo di
-// Castellammare. Le regioni non ancora mappate usano una sagoma "stivale
-// d'Italia" generica come segnaposto.
+// Sagoma stilizzata (semplificata a poligono, non un tracciato costiero
+// dettagliato) ma derivata da coordinate reali di capi/città di riferimento
+// per ogni regione — non va mai disegnata a mano "a occhio": si prendono i
+// punti notevoli della costa (capi, città sulla costa) con lon/lat reali,
+// si proiettano con x=(lon-lon0)*111*cos(lat_media), y=(lat0-lat)*111 (km,
+// nord in alto), e si collegano in ordine costiero. Ciascuna regione ha il
+// proprio viewBox, dato che la forma decide la proporzione (Puglia stretta
+// e verticale, Sicilia larga e orizzontale). Puglia: sperone del Gargano
+// (Vieste) in alto, tacco del Salento che si restringe fino a Leuca in
+// fondo, rientranza del golfo di Taranto sul lato Ionio. Sicilia: punti
+// reali usati — Capo Peloro/Milazzo (NE), Cefalù/Capo Gallo/golfo di
+// Castellammare/Capo San Vito (costa nord, con le due insenature), Trapani/
+// Marsala-Capo Lilibeo (punta O), Mazara/Sciacca/Agrigento/Gela (costa
+// sud), Punta Secca/Capo Passero (punta SE), Siracusa/Catania/Taormina
+// (costa Ionica). Le regioni non ancora mappate usano una sagoma "stivale
+// d'Italia" generica come segnaposto, da sostituire con la stessa tecnica
+// quando si aggiunge quella regione.
 const REGION_MAPS = {
   "Puglia": { viewBox: "0 0 100 156", d: "M85,12 L55,4 L40,18 L48,30 L56,50 L52,72 L56,92 L50,112 L52,130 L42,150 L32,135 L26,115 L38,98 L24,82 L30,62 L18,45 L26,28 Z" },
-  "Sicilia": { viewBox: "0 0 160 100", d: "M148,20 L128,10 L104,16 L82,8 L60,16 L44,8 L26,6 L8,32 L12,54 L22,72 L38,82 L56,92 L78,88 L98,76 L116,62 L132,44 L142,30 Z" },
+  "Sicilia": { viewBox: "0 0 286 178", d: "M285,1 L248,0 L141,26 L79,4 L41,24 L27,10 L8,28 L0,52 L15,69 L59,84 L98,109 L160,133 L179,158 L240,177 L253,133 L235,86 L253,47 Z" },
   "_default": { viewBox: "0 0 100 156", d: "M60,4 C72,4 70,16 78,22 C86,28 84,40 76,46 C82,54 80,66 70,70 C74,80 68,92 58,94 C62,104 56,116 46,116 C48,126 40,136 30,132 C24,140 12,138 10,128 C4,124 6,112 14,108 C8,100 12,88 22,86 C16,76 22,64 32,62 C28,50 36,38 48,38 C44,26 52,14 60,4 Z" },
 };
 function regionMapSVG(name) {
