@@ -354,7 +354,7 @@ async function fetchCurrentConditions(spot) {
       })),
       fetchJSON("https://marine-api.open-meteo.com/v1/marine?" + new URLSearchParams({
         latitude: spot.lat, longitude: spot.lon,
-        current: "wave_height,wave_period,wave_direction",
+        current: "wave_height,swell_wave_period,wave_direction",
         timezone: "Europe/Rome",
       })),
       // Raffiche da GFS (taratura Windguru, come nel backend): il blocco
@@ -374,7 +374,7 @@ async function fetchCurrentConditions(spot) {
     const marine = marineResult.status === "fulfilled" ? marineResult.value : null;
     const gfsGusts = gustsResult.status === "fulfilled" ? gustsResult.value?.current?.wind_gusts_10m : null;
     const height = marine?.current?.wave_height ?? null;
-    const period = marine?.current?.wave_period ?? null;
+    const period = marine?.current?.swell_wave_period ?? null;
     const waveDir = marine?.current?.wave_direction ?? null;
 
     return {
@@ -402,7 +402,7 @@ function buildChartFromHourly(hourly) {
   const points = [];
   for (let i = 0; i < hourly.time.length; i += 3) {
     const h = hourly.wave_height?.[i] ?? null;
-    const p = hourly.wave_period?.[i] ?? null;
+    const p = hourly.swell_wave_period?.[i] ?? null;
     points.push({
       time: hourly.time[i], waveHeightM: round(h, 2), wavePeriodS: round(p, 1),
       waveEnergyKJ: energyFrom(h, p), waveDirectionDeg: hourly.wave_direction?.[i] ?? null,
@@ -439,8 +439,8 @@ async function fetchWeeklyDataFromOpenMeteo(spot) {
   });
   const marineUrl = "https://marine-api.open-meteo.com/v1/marine?" + new URLSearchParams({
     latitude: spot.lat, longitude: spot.lon,
-    daily: "wave_height_max,wave_period_max,wave_direction_dominant",
-    hourly: "wave_height,wave_period,wave_direction,sea_surface_temperature,sea_level_height_msl",
+    daily: "wave_height_max,swell_wave_period_max,wave_direction_dominant",
+    hourly: "wave_height,swell_wave_period,wave_direction,sea_surface_temperature,sea_level_height_msl",
     forecast_days: 7, timezone: "Europe/Rome",
   });
   const [windResult, marineResult] = await Promise.allSettled([fetchJSON(windUrl), fetchJSON(marineUrl)]);
@@ -459,7 +459,7 @@ async function fetchWeeklyDataFromOpenMeteo(spot) {
       ),
       windDir: wind.daily.wind_direction_10m_dominant_best_match[i],
       height: dHeight,
-      period: marine?.daily?.wave_period_max?.[i] ?? null,
+      period: marine?.daily?.swell_wave_period_max?.[i] ?? null,
       waveDir: marine?.daily?.wave_direction_dominant?.[i] ?? null,
       seaState: classifySeaState(dHeight),
       waterTemp: middayValue(marine?.hourly, "sea_surface_temperature", date),
