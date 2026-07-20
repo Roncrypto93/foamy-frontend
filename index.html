@@ -49,6 +49,8 @@
   .topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 20px 0 18px; border-bottom: 1px solid var(--border); }
   .brand { display: flex; align-items: center; gap: 12px; }
   .brand-mark { width: 34px; height: 34px; display: block; border-radius: 50%; flex-shrink: 0; }
+  .drawer-title-row { display: flex; align-items: center; gap: 14px; }
+  .drawer-brand-mark { width: 40px; height: 40px; display: block; border-radius: 50%; flex-shrink: 0; }
   .brand-text { display: flex; flex-direction: column; line-height: 1; gap: 4px; }
   .brand-name { font-family: 'Oswald', var(--font-display); font-weight: 700; font-size: 22px; color: var(--ink-bright); letter-spacing: -0.01em; text-transform: uppercase; }
   .brand-tag { font-family: var(--font-data); font-weight: 500; font-size: 10.5px; color: var(--accent); text-transform: uppercase; letter-spacing: .16em; }
@@ -146,10 +148,6 @@
     .swell-block { padding-left: 0; border-left: none; padding-top: 16px; border-top: 1px solid var(--border); }
   }
 
-  /* Grafico marea: solo 24 punti (un giorno), niente bisogno dello scroll
-     orizzontale riservato ai grafici a 7 giorni — classe separata apposta. */
-  .tide-chart-wrap { position: relative; }
-  .tide-chart-wrap svg { width: 100%; height: auto; display: block; }
   .forecast-sub-label { font-family: var(--font-data); font-weight: 600; font-size: 12px; color: var(--ink-bright); margin: 0 0 8px; }
   /* Vento e mare condividono un solo scorrimento orizzontale: un solo
      contenitore invece di due, così i due grafici si muovono sempre
@@ -170,9 +168,6 @@
      il render di entrambi i grafici (vedi renderForecastDayDividers). */
   .forecast-day-dividers { position: absolute; top: 0; left: 0; width: 0; height: 0; pointer-events: none; }
   .forecast-day-divider-line { position: absolute; width: 1.5px; background: rgba(222,242,241,0.3); }
-  .chart-legend { display: flex; gap: 14px; font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); margin-bottom: 8px; }
-  .legend-item { display: flex; align-items: center; gap: 5px; }
-  .legend-swatch { width: 12px; height: 2px; display: inline-block; }
   .legend-swatch--gradient {
     width: 46px; height: 6px; border-radius: 2px;
     background: linear-gradient(90deg, #fff 0%, #4fd1c5 18%, #86e08a 31%, #f2d94e 44%, #f2994e 60%, #e0524f 78%, #b06ae0 100%);
@@ -474,10 +469,15 @@ async function fetchWeeklyData(spot) {
       waterTemp: d.sea.waterTempC,
       seaLevel: d.sea.seaLevelM,
     }));
-    const chart = (data.chart || []).map((p) => ({
+    // Il backend non riporta ancora una direzione onda per ogni singolo
+    // punto a 3 ore dentro "chart" (solo nel riepilogo giornaliero "days"):
+    // finché non la aggiunge lì, si usa la direzione del giorno a cui il
+    // punto appartiene — lo swell ruota lentamente, quindi è
+    // un'approssimazione ragionevole, meglio di non mostrare nulla.
+    const chart = (data.chart || []).map((p, i) => ({
       time: p.time, waveHeightM: p.waveHeightM, wavePeriodS: p.wavePeriodS,
       waveEnergyKJ: p.waveEnergyKJ ?? energyFrom(p.waveHeightM, p.wavePeriodS),
-      waveDirectionDeg: p.waveDirectionDeg,
+      waveDirectionDeg: p.waveDirectionDeg ?? days[Math.floor(i / POINTS_PER_DAY)]?.waveDir ?? null,
     }));
     const windChart = (data.windChart || []).map((p) => ({
       time: p.time, windSpeedKn: p.windSpeedKn, windGustsKn: p.windGustsKn, windDirectionDeg: p.windDirectionDeg,
@@ -499,7 +499,6 @@ async function fetchTideData(spot) {
     waterTemp: data.water_temp ?? null,
     currentLevel: data.tide?.current_level ?? null,
     trend: data.tide?.trend ?? null,
-    hourlyForecast: Array.isArray(data.tide?.hourly_forecast) ? data.tide.hourly_forecast : [],
   };
 }
 
@@ -508,16 +507,19 @@ const CLASSICAL_8 = ["Tramontana","Grecale","Levante","Scirocco","Ostro","Libecc
 function cardinal16(deg) { return CARDINAL_16[Math.round(deg / 22.5) % 16]; }
 function classicalName(deg) { return CLASSICAL_8[Math.round(deg / 45) % 8]; }
 
-function arrowSVG(deg, size, gap) {
+function arrowSVG(deg, size) {
   // windDirectionDeg è la direzione da cui soffia il vento (convenzione
   // meteo); la freccia deve invece puntare verso dove il vento sta andando,
-  // quindi si ruota di 180° in più.
+  // quindi si ruota di 180° in più. Stessa freccina triangolare usata nei
+  // grafici Forecast (vedi directionArrowSVG), solo più grande, invece
+  // della vecchia forma a "ago di bussola" — un solo simbolo di direzione
+  // per tutta la piattaforma.
   const pointDeg = deg + 180;
   return `
-  <div class="arrow-widget" style="width:${size}px;gap:${gap ?? 6}px">
-    <svg width="${size}" height="${size}" viewBox="0 0 80 80" role="img" aria-label="Direzione del vento">
-      <g class="needle" style="--needle-deg:${pointDeg}deg; transform: rotate(${pointDeg}deg)">
-        <path d="M40,4 L16,34 L31,34 L31,72 L49,72 L49,34 L64,34 Z" fill="#f4fdfc"/>
+  <div class="arrow-widget" style="width:${size}px">
+    <svg width="${size}" height="${size}" viewBox="-8 -8 16 16" role="img" aria-label="Direzione del vento">
+      <g class="needle" style="--needle-deg:${pointDeg}deg; transform: rotate(${pointDeg}deg); transform-origin:0 0">
+        <path d="M0,-6 L-4,5 L0,2 L4,5 Z" fill="#f4fdfc"/>
       </g>
     </svg>
   </div>`;
@@ -658,11 +660,10 @@ function currentConditionsHTML(f) {
           ${f.waveDir != null ? `
           <div class="swell-dir">
             ${directionArrowSVG(f.waveDir + 180)}
-            <span>Swell da ${cardinal16(f.waveDir)} <span class="arrow-name">${classicalName(f.waveDir)}</span></span>
+            <span>Swell da ${cardinal16(f.waveDir)}</span>
           </div>` : ""}
         </div>
         <div class="swell-block" id="liveTideBlock">
-          <p class="panel-label">Marea</p>
           <div class="water-widget" style="margin-top:0;padding-top:0;border-top:none;flex-direction:column;align-items:flex-start;gap:10px">
             <div class="water-item">
               <span class="water-icon">${THERMOMETER_ICON_SVG}</span>
@@ -675,7 +676,7 @@ function currentConditionsHTML(f) {
               <span class="water-icon" id="liveTideIcon">${tideArrowSVG(false)}</span>
               <div>
                 <div class="val tabular" id="liveTideLevel">—</div>
-                <div class="lbl" id="liveTideLbl">Marea</div>
+                <div class="lbl" id="liveTideLbl">Livello</div>
               </div>
             </div>
           </div>
@@ -688,24 +689,6 @@ function currentConditionsHTML(f) {
 function tideArrowSVG(rising) {
   const d = rising ? "M12 19V5M5 12l7-7 7 7" : "M12 5v14M5 12l7 7 7-7";
   return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
-}
-
-// ---------- Grafico "Mare — 7 giorni" ----------
-function catmullRomPath(points) {
-  if (points.length < 2) return "";
-  let d = `M${points[0][0].toFixed(1)},${points[0][1].toFixed(1)} `;
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[i - 1] || points[i];
-    const p1 = points[i];
-    const p2 = points[i + 1];
-    const p3 = points[i + 2] || p2;
-    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
-    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
-    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
-    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
-    d += `C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)} `;
-  }
-  return d;
 }
 
 // Punti per giorno di un grafico a step di 3 ore (24h / 3h): usata sia dal
@@ -774,7 +757,10 @@ function renderWaveChart(svgEl_, chart) {
   for (let i = 0; i < n; i++) {
     const cx = x(i);
     const p = chart[i];
-    const isFlat = heights[i] === 0;
+    // "Piatto" quando l'altezza arrotonda a 0.0 alla cifra mostrata (non
+    // solo quando è esattamente 0) — altrimenti si vedrebbe una bar
+    // minuscola etichettata "0.0", che è proprio il caso FLAT deve evitare.
+    const isFlat = heights[i] < 0.05;
 
     if (isFlat) {
       // Mare piatto: niente bar né periodo, solo la scritta FLAT in bianco,
@@ -1034,110 +1020,6 @@ function renderForecastDayDividers(wrapEl, windSvgEl, waveSvgEl, windN, waveN) {
 
 const THERMOMETER_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>';
 
-function tideContentHTML(tide) {
-  const trendLabel = tide.trend === "rising" ? "in salita" : tide.trend === "falling" ? "in discesa" : "";
-  const levelText = tide.currentLevel != null ? `${tide.currentLevel >= 0 ? "+" : ""}${tide.currentLevel} m` : "—";
-  const hasChart = Array.isArray(tide.hourlyForecast) && tide.hourlyForecast.length > 0;
-  return `
-    <div class="water-widget" style="margin-top:0;padding-top:0;border-top:none">
-      <div class="water-item">
-        <span class="water-icon">${THERMOMETER_ICON_SVG}</span>
-        <div>
-          <div class="val tabular">${tide.waterTemp ?? "—"}°C</div>
-          <div class="lbl">Temperatura acqua</div>
-        </div>
-      </div>
-      <div class="water-item">
-        <span class="water-icon tide-trend ${tide.trend || ""}">${tideArrowSVG(tide.trend === "rising")}</span>
-        <div>
-          <div class="val tabular">${levelText}</div>
-          <div class="lbl">Marea${trendLabel ? " " + trendLabel : ""}</div>
-        </div>
-      </div>
-    </div>
-    ${hasChart ? `
-    <div class="chart-legend" style="margin-top:14px">
-      <span class="legend-item"><span class="legend-swatch" style="background:#4fd1c5;border-radius:50%;width:7px;height:7px"></span>Alta marea</span>
-      <span class="legend-item"><span class="legend-swatch" style="background:#9be3de;border-radius:50%;width:7px;height:7px"></span>Bassa marea</span>
-    </div>
-    <div class="tide-chart-wrap" id="tideChartWrap">
-      <svg id="tideChartSvg"></svg>
-    </div>` : ""}
-  `;
-}
-
-// Trova i minimi/massimi locali (alta/bassa marea) su 24 punti orari: stesso
-// approccio "finestra minima tra due punti" già usato altrove nel sito per
-// non segnalare come picchi separati due punti adiacenti quasi identici.
-function findTideExtremes(values, isBetter, minGap) {
-  const result = [];
-  for (let i = 1; i < values.length - 1; i++) {
-    if (isBetter(values[i], values[i - 1]) && isBetter(values[i], values[i + 1])) {
-      if (result.length && i - result[result.length - 1] < minGap) {
-        if (isBetter(values[i], values[result[result.length - 1]])) result[result.length - 1] = i;
-      } else {
-        result.push(i);
-      }
-    }
-  }
-  return result;
-}
-
-const TIDE_CHART_W = 640, TIDE_CHART_H = 150, TIDE_PAD_L = 6, TIDE_PAD_R = 6, TIDE_PAD_T = 26, TIDE_PAD_B = 22;
-const TIDE_PLOT_W = TIDE_CHART_W - TIDE_PAD_L - TIDE_PAD_R, TIDE_PLOT_H = TIDE_CHART_H - TIDE_PAD_T - TIDE_PAD_B;
-
-function renderTideChart(svgEl_, hourly) {
-  svgEl_.innerHTML = "";
-  svgEl_.setAttribute("viewBox", `0 0 ${TIDE_CHART_W} ${TIDE_CHART_H}`);
-  if (!hourly || !hourly.length) {
-    const t = svgElNS("text", { x: TIDE_CHART_W / 2, y: TIDE_CHART_H / 2, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 11, fill: "#6b8583" });
-    t.textContent = "Dati marea non disponibili";
-    svgEl_.appendChild(t);
-    return;
-  }
-  const levels = hourly.map((p) => p.level ?? 0);
-  const n = levels.length;
-  const minL = Math.min(...levels), maxL = Math.max(...levels);
-  const pad = Math.max(0.05, (maxL - minL) * 0.3);
-  const lo = minL - pad, hi = maxL + pad;
-  const x = (i) => TIDE_PAD_L + (i / (n - 1)) * TIDE_PLOT_W;
-  const y = (v) => TIDE_PAD_T + TIDE_PLOT_H - ((v - lo) / (hi - lo)) * TIDE_PLOT_H;
-
-  const defs = svgElNS("defs", {});
-  const grad = svgElNS("linearGradient", { id: "tideGrad", x1: "0", y1: "0", x2: "0", y2: "1" });
-  grad.appendChild(svgElNS("stop", { offset: "0%", "stop-color": "#4fd1c5", "stop-opacity": "0.7" }));
-  grad.appendChild(svgElNS("stop", { offset: "100%", "stop-color": "#000000", "stop-opacity": "0" }));
-  defs.appendChild(grad);
-  svgEl_.appendChild(defs);
-
-  [0, 0.5, 1].forEach((f) => {
-    const yy = TIDE_PAD_T + TIDE_PLOT_H * (1 - f);
-    svgEl_.appendChild(svgElNS("line", { x1: TIDE_PAD_L, x2: TIDE_CHART_W - TIDE_PAD_R, y1: yy, y2: yy, stroke: "rgba(222,242,241,0.06)", "stroke-width": 1 }));
-  });
-
-  // curva morbida "a onda" (sfumatura turchese -> nero), stesso trattamento
-  // usato in passato per il grafico onda prima di passare alle bar
-  const pts = levels.map((v, i) => [x(i), y(v)]);
-  const areaD = catmullRomPath(pts) + `L${x(n - 1).toFixed(1)},${(TIDE_CHART_H - TIDE_PAD_B).toFixed(1)} L${TIDE_PAD_L},${(TIDE_CHART_H - TIDE_PAD_B).toFixed(1)} Z`;
-  svgEl_.appendChild(svgElNS("path", { d: areaD, fill: "url(#tideGrad)" }));
-  svgEl_.appendChild(svgElNS("path", { d: catmullRomPath(pts), fill: "none", stroke: "#4fd1c5", "stroke-width": 2 }));
-
-  const highs = findTideExtremes(levels, (a, b) => a >= b, 3);
-  const lows = findTideExtremes(levels, (a, b) => a <= b, 3);
-
-  function markExtreme(i, color) {
-    svgEl_.appendChild(svgElNS("circle", { cx: x(i).toFixed(1), cy: y(levels[i]).toFixed(1), r: 3.5, fill: color }));
-    const lbl = svgElNS("text", {
-      x: x(i).toFixed(1), y: TIDE_CHART_H - 6, "text-anchor": "middle", "font-family": "IBM Plex Mono",
-      "font-weight": 600, "font-size": 9.5, fill: color,
-    });
-    lbl.textContent = hourly[i].time;
-    svgEl_.appendChild(lbl);
-  }
-  highs.forEach((i) => markExtreme(i, "#4fd1c5"));
-  lows.forEach((i) => markExtreme(i, "#9be3de"));
-}
-
 function webcamSectionHTML(spot) {
   const cam = spot.webcam_banner;
   if (!cam) {
@@ -1176,14 +1058,20 @@ let openToken = 0;
 function openDrawer(spot) {
   const token = ++openToken;
   const root = document.getElementById("drawerRoot");
+  // Riusa la stessa immagine (base64) già caricata per il logo dell'header,
+  // invece di duplicarla qui: unica fonte per l'asset.
+  const brandMarkSrc = document.querySelector(".brand-mark")?.src || "";
   root.innerHTML = `
     <div class="drawer-overlay">
       <aside class="drawer-panel drawer-in">
         <div class="drawer-head">
           <div class="drawer-head-inner">
-            <div>
-              <p class="drawer-coast">${spot.coast}</p>
-              <h2 class="drawer-title">${spot.name}</h2>
+            <div class="drawer-title-row">
+              <img class="drawer-brand-mark" alt="" src="${brandMarkSrc}">
+              <div>
+                <p class="drawer-coast">${spot.coast}</p>
+                <h2 class="drawer-title">${spot.name}</h2>
+              </div>
             </div>
             <button class="drawer-close" id="closeBtn" aria-label="Chiudi pannello">×</button>
           </div>
@@ -1205,9 +1093,6 @@ function openDrawer(spot) {
         ${currentConditionsHTML(f)}
         <div id="threeDaySection">
           <p class="footer-ts" style="padding:20px 0">Caricamento previsioni 7 giorni…</p>
-        </div>
-        <div id="tideSection">
-          <p class="footer-ts" style="padding:20px 0">Caricamento marea e temperatura acqua…</p>
         </div>
         ${webcamAndFooterHTML(spot)}
       `;
@@ -1231,43 +1116,26 @@ function openDrawer(spot) {
           document.getElementById("threeDaySection").innerHTML = `<p class="footer-ts" style="padding:20px 0">Previsioni 7 giorni non disponibili al momento.</p>`;
         });
 
+      // La marea/temperatura acqua arriva via una fetch separata (più lenta
+      // di vento/swell) e alimenta solo il banner Live in alto — niente più
+      // pannello dedicato in fondo alla pagina. Se fallisce, i campi restano
+      // sul placeholder "—" già presente nel markup.
       fetchTideData(spot)
         .then((tide) => {
           if (token !== openToken) return;
-          document.getElementById("tideSection").innerHTML = `
-            <section class="panel">
-              <p class="panel-label" style="margin-bottom:4px">Marea e temperatura dell'acqua</p>
-              ${tideContentHTML(tide)}
-            </section>
-          `;
-          if (tide.hourlyForecast && tide.hourlyForecast.length) {
-            renderTideChart(document.getElementById("tideChartSvg"), tide.hourlyForecast);
-          }
-          // Stessi valori anche nel banner Live in alto, non solo nel
-          // pannello dedicato più in basso: arrivano via una fetch separata
-          // (più lenta di vento/swell), quindi si aggiornano quando pronti
-          // invece di bloccare il resto delle condizioni live.
           const liveWaterTemp = document.getElementById("liveWaterTemp");
           if (liveWaterTemp) liveWaterTemp.textContent = tide.waterTemp != null ? `${tide.waterTemp}°C` : "—";
           const liveTideLevel = document.getElementById("liveTideLevel");
           if (liveTideLevel) liveTideLevel.textContent = tide.currentLevel != null ? `${tide.currentLevel >= 0 ? "+" : ""}${tide.currentLevel} m` : "—";
           const liveTideLbl = document.getElementById("liveTideLbl");
-          if (liveTideLbl) liveTideLbl.textContent = tide.trend === "rising" ? "Marea in salita" : tide.trend === "falling" ? "Marea in discesa" : "Marea";
+          if (liveTideLbl) liveTideLbl.textContent = tide.trend === "rising" ? "In salita" : tide.trend === "falling" ? "In discesa" : "Livello";
           const liveTideIcon = document.getElementById("liveTideIcon");
           if (liveTideIcon) {
             liveTideIcon.innerHTML = tideArrowSVG(tide.trend === "rising");
             liveTideIcon.className = "water-icon tide-trend " + (tide.trend || "");
           }
         })
-        .catch(() => {
-          if (token !== openToken) return;
-          document.getElementById("tideSection").innerHTML = `
-            <section class="panel">
-              <p class="panel-label" style="margin-bottom:4px">Marea e temperatura dell'acqua</p>
-              <p class="footer-ts" style="text-align:left;padding:8px 0">Dato non disponibile al momento.</p>
-            </section>
-          `;
-        });
+        .catch(() => {});
     })
     .catch(() => {
       if (token !== openToken) return;
