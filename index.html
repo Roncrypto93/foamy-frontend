@@ -367,10 +367,11 @@ function bumpSurfLevel(level) {
   const idx = SURF_RATING_LEVELS.indexOf(level);
   return SURF_RATING_LEVELS[Math.min(idx + 1, SURF_RATING_LEVELS.length - 1)];
 }
-function capSurfLevel(level, ceiling) {
+// Declassamento di una posizione (non un tetto fisso "mai sopra Buona") —
+// stessa correzione fatta nel backend dopo il caso Otranto.
+function downgradeSurfLevel(level) {
   const idx = SURF_RATING_LEVELS.indexOf(level);
-  const ceilingIdx = SURF_RATING_LEVELS.indexOf(ceiling);
-  return SURF_RATING_LEVELS[Math.min(idx, ceilingIdx)];
+  return SURF_RATING_LEVELS[Math.max(idx - 1, 0)];
 }
 function surfAngularDiff(a, b) {
   let diff = (a - b) % 360;
@@ -402,9 +403,9 @@ function calculateSurfRating(waveHeightM, wavePeriodS, windSpeedKn, windDirectio
       rating = bumpSurfLevel(baseLevel);
       windEffect = "bump";
     } else if (zoneEffect === "cap") {
-      const capped = capSurfLevel(baseLevel, "Buona");
-      if (capped !== baseLevel) {
-        rating = capped;
+      const downgraded = downgradeSurfLevel(baseLevel);
+      if (downgraded !== baseLevel) {
+        rating = downgraded;
         windEffect = "cap";
       }
     }
@@ -902,7 +903,7 @@ function currentConditionsHTML(f, spot) {
             <span>Swell da ${cardinal16(f.waveDir)}</span>
           </div>` : ""}
           ${f.surfRating?.windEffect === "bump" ? `<div class="surf-rating-note surf-rating-note--up">↑ vento favorevole</div>` : ""}
-          ${f.surfRating?.windEffect === "cap" ? `<div class="surf-rating-note surf-rating-note--down">↓ vento sfavorevole, tetto applicato</div>` : ""}
+          ${f.surfRating?.windEffect === "cap" ? `<div class="surf-rating-note surf-rating-note--down">↓ vento sfavorevole, punteggio declassato</div>` : ""}
         </div>
         <div class="swell-block" id="liveTideBlock">
           <div class="water-widget" style="margin-top:0;padding-top:0;border-top:none;flex-direction:column;align-items:flex-start;gap:10px">
