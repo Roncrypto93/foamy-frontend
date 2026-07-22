@@ -146,20 +146,6 @@
   .kj-readout .val { font-family: var(--font-data); font-weight: 600; font-size: 22px; color: var(--ink-bright); }
   .kj-readout .lbl { font-family: var(--font-data); font-size: 10px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .1em; }
   .swell-dir { display: flex; align-items: center; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-family: var(--font-data); font-size: 12px; font-weight: 600; color: var(--ink-bright); }
-  /* Punteggio qualità surf (Flat..Perfect), solo per spot con onda e
-     coastOrientationDeg noto — vedi calculateSurfRating nel backend.
-     Nessun indicatore per Flat/Bad: lo scopo è segnalare quando il mare è
-     surfabile, non sottolineare quando non lo è. Il logo Foamy viene
-     ricolorato senza toccare l'asset originale: il PNG è bicolore
-     (sfondo nero opaco + onda bianca), quindi lo mostriamo con
-     mix-blend-mode:screen sopra un cerchio del colore del punteggio —
-     screen(colore, nero)=colore, screen(colore, bianco)=bianco, così il
-     nero "sparisce" nel colore e l'onda bianca resta visibile sopra. */
-  .surf-rating-logo { display: inline-flex; width: 26px; height: 26px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
-  .surf-rating-logo img { width: 100%; height: 100%; display: block; mix-blend-mode: screen; }
-  .surf-rating-note { margin-top: 8px; font-family: var(--font-data); font-size: 11px; color: var(--ink-dim); }
-  .surf-rating-note--up { color: var(--accent); }
-  .surf-rating-note--down { color: var(--alert); }
 
   .water-widget { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; gap: 20px; flex-wrap: wrap; }
   .water-item { display: flex; align-items: center; gap: 8px; }
@@ -899,16 +885,6 @@ function dayLabel(dateStr, idx) {
   return d.toLocaleDateString("it-IT", { weekday: "short", day: "numeric" });
 }
 
-// Logo Foamy ricolorato in base al punteggio surf — niente per Flat/Bad o
-// rating assente (vedi SURF_RATING_VISIBLE). Riusa lo stesso asset già
-// caricato nell'header (.brand-mark), non lo duplica.
-function surfRatingLogoHTML(rating) {
-  if (!rating || !SURF_RATING_VISIBLE.has(rating)) return "";
-  const src = document.querySelector(".brand-mark")?.src || "";
-  if (!src) return "";
-  return `<div class="surf-rating-logo" style="background:${SURF_RATING_COLORS[rating]}" title="${rating}"><img src="${src}" alt="${rating}"></div>`;
-}
-
 function currentConditionsHTML(f, spot) {
   return `
     <section class="panel">
@@ -940,9 +916,6 @@ function currentConditionsHTML(f, spot) {
             ${directionArrowSVG(f.waveDir + 180)}
             <span>Swell da ${cardinal16(f.waveDir)}</span>
           </div>` : ""}
-          ${surfRatingLogoHTML(f.surfRating?.rating)}
-          ${f.surfRating?.windEffect === "bump" && SURF_RATING_VISIBLE.has(f.surfRating.rating) ? `<div class="surf-rating-note surf-rating-note--up">↑ vento favorevole</div>` : ""}
-          ${f.surfRating?.windEffect === "cap" && SURF_RATING_VISIBLE.has(f.surfRating.rating) ? `<div class="surf-rating-note surf-rating-note--down">↓ vento sfavorevole, punteggio declassato</div>` : ""}
         </div>
         <div class="swell-block" id="liveTideBlock">
           <div class="water-widget" style="margin-top:0;padding-top:0;border-top:none;flex-direction:column;align-items:flex-start;gap:10px">
@@ -992,12 +965,7 @@ const WAVE3_BAR_BASELINE = WAVE3_BAR_TOP + WAVE3_BAR_MAX_H;
 const WAVE3_BELOW_ZONE_H = 34; // periodo + energia, sotto la bar
 const WAVE3_DIR_TOP = WAVE3_BAR_BASELINE + WAVE3_BELOW_ZONE_H + 2;
 const WAVE3_DIR_H = 32;
-// Punteggio surf (logo Foamy colorato, visibile solo per Fair/Good/Great/
-// Perfect): stesso calcolo di calculateSurfRating, in fondo al grafico
-// onda — presente solo per gli spot con disciplina "wave".
-const WAVE3_RATING_TOP = WAVE3_DIR_TOP + WAVE3_DIR_H + 4;
-const WAVE3_RATING_H = 20;
-const WAVE3_CHART_H = WAVE3_RATING_TOP + WAVE3_RATING_H + 3;
+const WAVE3_CHART_H = WAVE3_DIR_TOP + WAVE3_DIR_H + 3;
 
 // Scala colore altezza onda: le stesse tappe esatte della scala vento
 // (WIND_COLOR_STOPS, non punti interpolati a caso lungo il gradiente) così
@@ -1041,9 +1009,6 @@ function renderWaveChart(svgEl_, chart) {
   const barH = (v) => (v / maxH) * WAVE3_BAR_MAX_H;
 
   const barW = WAVE3_COL_W * 0.62;
-  // Stesso asset già caricato nell'header (.brand-mark), letto una sola
-  // volta fuori dal loop invece che per ogni colonna.
-  const surfLogoSrc = document.querySelector(".brand-mark")?.src || "";
   for (let i = 0; i < n; i++) {
     const cx = x(i);
     const p = chart[i];
@@ -1114,32 +1079,6 @@ function renderWaveChart(svgEl_, chart) {
       const dirLbl = svgElNS("text", { x: cx, y: WAVE3_DIR_TOP + 26, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 9, fill: "#9be3de" });
       dirLbl.textContent = cardinal16(dir);
       svgEl_.appendChild(dirLbl);
-    }
-
-    // Punteggio surf, in fondo: logo Foamy ricolorato col colore del
-    // livello (stessa palette del pannello condizioni live), visibile solo
-    // per Fair/Good/Great/Perfect — l'obiettivo è segnalare quando conviene
-    // surfare, non evidenziare quando non conviene (niente per Flat/Bad, e
-    // ovviamente niente per gli spot senza disciplina "wave").
-    if (p.surfRating?.rating && SURF_RATING_VISIBLE.has(p.surfRating.rating) && surfLogoSrc) {
-      const logoSize = Math.min(WAVE3_RATING_H, barW);
-      const logoX = cx - logoSize / 2;
-      svgEl_.appendChild(svgElNS("rect", {
-        x: logoX.toFixed(1), y: WAVE3_RATING_TOP, width: logoSize.toFixed(1), height: logoSize.toFixed(1), rx: (logoSize / 2).toFixed(1),
-        fill: SURF_RATING_COLORS[p.surfRating.rating],
-      }));
-      // mix-blend-mode:screen sopra il cerchio colorato: il logo è
-      // bicolore (sfondo nero opaco + onda bianca) e screen(colore,
-      // nero)=colore, screen(colore,bianco)=bianco — il nero "sparisce"
-      // nel colore del livello, l'onda bianca resta visibile sopra.
-      const logoImg = svgElNS("image", {
-        x: logoX.toFixed(1), y: WAVE3_RATING_TOP, width: logoSize.toFixed(1), height: logoSize.toFixed(1),
-        href: surfLogoSrc, style: "mix-blend-mode:screen",
-      });
-      const logoTitle = document.createElementNS("http://www.w3.org/2000/svg", "title");
-      logoTitle.textContent = p.surfRating.rating;
-      logoImg.appendChild(logoTitle);
-      svgEl_.appendChild(logoImg);
     }
   }
 }
@@ -1301,7 +1240,6 @@ function forecastLegendHTML() {
         ${item(wavePeriodTop, wavePeriodH, "Periodo (s)")}
         ${item(waveEnergyTop, waveEnergyH, "Energia (kJ)")}
         ${item(WAVE3_DIR_TOP, WAVE3_DIR_H + 3, "Direzione")}
-        ${item(WAVE3_RATING_TOP, WAVE3_RATING_H, "Punteggio surf (logo colorato: Fair/Good/Great/Perfect)")}
       </div>
     </div>
   `;
@@ -1484,7 +1422,9 @@ function openDrawer(spot) {
 }
 
 render();
-loadSpots().then((spots) => { SPOTS = spots; render(); });
+// Solo Puglia per ora: la Sicilia (già presente nei dati del backend) è
+// tolta temporaneamente dal frontend, ci si lavora più avanti.
+loadSpots().then((spots) => { SPOTS = spots.filter((s) => spotRegion(s) === "Puglia"); render(); });
 
 </script>
 </body>
