@@ -591,7 +591,18 @@ async function fetchWeeklyDataFromOpenMeteo(spot) {
       seaLevel: middayValue(marine?.hourly, "sea_level_height_msl", date),
     };
   });
-  return { days, chart: buildChartFromHourly(marine?.hourly), windChart: buildWindChartFromHourly(wind?.hourly) };
+  const chart = buildChartFromHourly(marine?.hourly);
+  const windChart = buildWindChartFromHourly(wind?.hourly);
+  // Punteggio surf calcolato in locale (il backend non risponde in questo
+  // ramo di fallback): stessa formula di calculateSurfRating, allineando
+  // per indice ogni punto onda al punto vento corrispondente — entrambe le
+  // serie sono a step di 3 ore sulla stessa griglia oraria.
+  if (spot.disciplines.includes("wave")) {
+    chart.forEach((p, i) => {
+      p.surfRating = calculateSurfRating(p.waveHeightM, p.wavePeriodS, windChart[i]?.windSpeedKn, windChart[i]?.windDirectionDeg, spot.coastOrientationDeg);
+    });
+  }
+  return { days, chart, windChart };
 }
 
 // Forecast settimanale: prova prima foamy-backend (/daily — riepilogo giorno
@@ -616,15 +627,15 @@ async function fetchWeeklyData(spot) {
       waterTemp: d.sea.waterTempC,
       seaLevel: d.sea.seaLevelM,
     }));
-    // Il backend non riporta ancora una direzione onda per ogni singolo
-    // punto a 3 ore dentro "chart" (solo nel riepilogo giornaliero "days"):
-    // finché non la aggiunge lì, si usa la direzione del giorno a cui il
-    // punto appartiene — lo swell ruota lentamente, quindi è
-    // un'approssimazione ragionevole, meglio di non mostrare nulla.
+    // waveDirectionDeg per punto arriva ora direttamente dal backend
+    // (mancava, bug corretto lato server); il fallback sulla direzione del
+    // giorno resta solo come rete di sicurezza per risposte più vecchie in
+    // cache o comunque incomplete.
     const chart = (data.chart || []).map((p, i) => ({
       time: p.time, waveHeightM: p.waveHeightM, wavePeriodS: p.wavePeriodS,
       waveEnergyKJ: p.waveEnergyKJ ?? energyFrom(p.waveHeightM, p.wavePeriodS),
       waveDirectionDeg: p.waveDirectionDeg ?? days[Math.floor(i / POINTS_PER_DAY)]?.waveDir ?? null,
+      surfRating: p.surfRating ?? null,
     }));
     const windChart = (data.windChart || []).map((p) => ({
       time: p.time, windSpeedKn: p.windSpeedKn, windGustsKn: p.windGustsKn, windDirectionDeg: p.windDirectionDeg,
@@ -945,7 +956,7 @@ const POINTS_PER_DAY = 8;
 // triangolare). Niente data/ora qui: la condivide con il grafico vento,
 // che scorre insieme in un unico contenitore (vedi forecastSectionHTML).
 // Ordine dall'alto: bar altezza onda (con l'altezza scritta dentro),
-// periodo + energia sotto, direzione in fondo.
+// periodo + energia sotto, direzione, punteggio surf in fondo.
 const WAVE3_COL_W = 34;
 const WAVE3_BAR_TOP = 4;
 const WAVE3_BAR_MAX_H = 90;
@@ -953,7 +964,12 @@ const WAVE3_BAR_BASELINE = WAVE3_BAR_TOP + WAVE3_BAR_MAX_H;
 const WAVE3_BELOW_ZONE_H = 34; // periodo + energia, sotto la bar
 const WAVE3_DIR_TOP = WAVE3_BAR_BASELINE + WAVE3_BELOW_ZONE_H + 2;
 const WAVE3_DIR_H = 32;
-const WAVE3_CHART_H = WAVE3_DIR_TOP + WAVE3_DIR_H + 3;
+// Punteggio surf (Scarsa..Perfetto, solo iniziale per lo spazio stretto
+// della colonna): stesso calcolo di calculateSurfRating, in fondo al
+// grafico onda — presente solo per gli spot con disciplina "wave".
+const WAVE3_RATING_TOP = WAVE3_DIR_TOP + WAVE3_DIR_H + 4;
+const WAVE3_RATING_H = 20;
+const WAVE3_CHART_H = WAVE3_RATING_TOP + WAVE3_RATING_H + 3;
 
 // Scala colore altezza onda: le stesse tappe esatte della scala vento
 // (WIND_COLOR_STOPS, non punti interpolati a caso lungo il gradiente) così
@@ -1067,6 +1083,21 @@ function renderWaveChart(svgEl_, chart) {
       const dirLbl = svgElNS("text", { x: cx, y: WAVE3_DIR_TOP + 26, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 9, fill: "#9be3de" });
       dirLbl.textContent = cardinal16(dir);
       svgEl_.appendChild(dirLbl);
+    }
+
+    // Punteggio surf, in fondo: cella colorata (stessa scala del badge
+    // nelle condizioni live) con l'iniziale del livello — Scarsa/Discreta/
+    // Buona/Ottima/Perfetto hanno tutte iniziali diverse, nessuna ambiguità
+    // nonostante lo spazio stretto della colonna. Assente per gli spot
+    // senza disciplina "wave" (surfRating non presente sul punto).
+    if (p.surfRating?.rating) {
+      svgEl_.appendChild(svgElNS("rect", {
+        x: (cx - barW / 2).toFixed(1), y: WAVE3_RATING_TOP, width: barW.toFixed(1), height: WAVE3_RATING_H, rx: 3,
+        fill: SURF_RATING_COLORS[p.surfRating.rating],
+      }));
+      const ratingLbl = svgElNS("text", { x: cx, y: WAVE3_RATING_TOP + WAVE3_RATING_H / 2 + 4, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 700, "font-size": 11, fill: WIND2_INK_ON_COLOR });
+      ratingLbl.textContent = p.surfRating.rating[0];
+      svgEl_.appendChild(ratingLbl);
     }
   }
 }
@@ -1228,6 +1259,7 @@ function forecastLegendHTML() {
         ${item(wavePeriodTop, wavePeriodH, "Periodo (s)")}
         ${item(waveEnergyTop, waveEnergyH, "Energia (kJ)")}
         ${item(WAVE3_DIR_TOP, WAVE3_DIR_H + 3, "Direzione")}
+        ${item(WAVE3_RATING_TOP, WAVE3_RATING_H, "Punteggio surf (S/D/B/O/P)")}
       </div>
     </div>
   `;
