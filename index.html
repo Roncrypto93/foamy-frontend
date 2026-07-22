@@ -256,6 +256,19 @@
     .drawer-title { font-size: 22px; }
     .drawer-body { padding: 12px; gap: 12px; }
     .panel { padding: 14px; border-radius: 8px; }
+
+    /* Forecast: il banner Live sopra resta un pannello com'è (a richiesta),
+       ma questa sezione perde il "riquadro" (sfondo/bordo/arrotondamento) e
+       si estende a schermo intero, annullando il padding di drawer-body
+       con un margine negativo — più spazio reale per i grafici, che sono
+       la parte che conta qui. */
+    .panel.panel-forecast { background: none; border: none; border-radius: 0; padding: 14px 8px; margin: 0 -12px; }
+
+    /* Grafici vento/mare rimpiccioliti (zoom, non i singoli valori delle
+       costanti JS che li disegnano) così a colpo d'occhio se ne vede di
+       più prima di dover scorrere — restano comunque scorribili in
+       orizzontale per il resto dei 7 giorni. */
+    .forecast-chart-wrap { zoom: 0.78; }
   }
 </style>
 </head>
@@ -1293,7 +1306,7 @@ function forecastLegendHTML() {
 // <line> separate per sezione, così la linea è visivamente continua.
 function forecastSectionHTML() {
   return `
-    <section class="panel">
+    <section class="panel panel-forecast">
       <p class="panel-label" style="margin-bottom:4px">Forecast — 7 giorni</p>
       <div class="forecast-body-row">
         ${forecastLegendHTML()}
