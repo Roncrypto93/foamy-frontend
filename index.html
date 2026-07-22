@@ -263,12 +263,6 @@
        con un margine negativo — più spazio reale per i grafici, che sono
        la parte che conta qui. */
     .panel.panel-forecast { background: none; border: none; border-radius: 0; padding: 14px 8px; margin: 0 -12px; }
-
-    /* Grafici vento/mare rimpiccioliti (zoom, non i singoli valori delle
-       costanti JS che li disegnano) così a colpo d'occhio se ne vede di
-       più prima di dover scorrere — restano comunque scorribili in
-       orizzontale per il resto dei 7 giorni. */
-    .forecast-chart-wrap { zoom: 0.78; }
   }
 </style>
 </head>
@@ -1003,6 +997,18 @@ function tideArrowSVG(rising) {
 // disallinearsi.
 const POINTS_PER_DAY = 8;
 
+// Fattore di scala per la larghezza VISUALIZZATA (CSS) dei grafici vento/
+// mare sotto i 640px — non tocca viewBox né le costanti di disegno (COL_W
+// ecc.), quindi tutta la matematica interna (posizione delle bar, altezze
+// riga) resta identica a desktop: si scala solo la dimensione finale in
+// px via svgEl_.style.width, esattamente come un'immagine responsive.
+// Deliberatamente NON si usa CSS zoom/transform sul contenitore: entrambi
+// hanno causato scroll-chaining sull'orizzontale su mobile reale (lo swipe
+// sul grafico trascinava tutta la pagina) — ridimensionare la sola <svg>
+// con una larghezza CSS più piccola è lo stesso meccanismo di un'immagine
+// responsive, quindi scroll/touch nativi del browser restano corretti.
+function chartDisplayScale() { return window.innerWidth <= 640 ? 0.72 : 1; }
+
 // Grafico onda a barre — stessa struttura del grafico vento (colonna
 // fissa, dati sempre leggibili, scroll orizzontale, stessa freccia
 // triangolare). Niente data/ora qui: la condivide con il grafico vento,
@@ -1050,7 +1056,7 @@ function renderWaveChart(svgEl_, chart) {
 
   const chartW = n * WAVE3_COL_W;
   svgEl_.setAttribute("viewBox", `0 0 ${chartW} ${WAVE3_CHART_H}`);
-  svgEl_.style.width = chartW + "px";
+  svgEl_.style.width = (chartW * chartDisplayScale()) + "px";
   svgEl_.style.height = "auto";
   svgEl_.style.display = "block";
 
@@ -1205,7 +1211,7 @@ function renderWindChart(svgEl_, windChart) {
 
   const chartW = n * WIND2_COL_W;
   svgEl_.setAttribute("viewBox", `0 0 ${chartW} ${WIND2_CHART_H}`);
-  svgEl_.style.width = chartW + "px";
+  svgEl_.style.width = (chartW * chartDisplayScale()) + "px";
   svgEl_.style.height = "auto";
   svgEl_.style.display = "block";
 
@@ -1342,9 +1348,15 @@ function renderForecastDayDividers(wrapEl, windSvgEl, waveSvgEl, windN, waveN) {
   const top = windSvgEl.getBoundingClientRect().top - wrapRect.top + wrapEl.scrollTop;
   const bottom = waveSvgEl.getBoundingClientRect().bottom - wrapRect.top + wrapEl.scrollTop;
 
+  // xd è in unità del viewBox (== px reali solo se le <svg> sono mostrate
+  // 1:1); sotto i 640px chartDisplayScale() le rimpicciolisce via CSS
+  // width, quindi va applicato lo stesso fattore anche qui — altrimenti
+  // questo overlay (un <div>, non dentro l'<svg>) punterebbe a un giorno
+  // sbagliato non appena i grafici si rimpiccioliscono.
+  const scale = chartDisplayScale();
   const totalDays = Math.max(1, Math.round(n / POINTS_PER_DAY));
   for (let d = 1; d < totalDays; d++) {
-    const xd = d * POINTS_PER_DAY * WIND2_COL_W;
+    const xd = d * POINTS_PER_DAY * WIND2_COL_W * scale;
     const line = document.createElement("div");
     line.className = "forecast-day-divider-line";
     line.style.left = xd + "px";
