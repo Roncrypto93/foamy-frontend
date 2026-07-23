@@ -6,9 +6,10 @@
 <title>Foamy — Forecast</title>
 <script>
   // Applica il tema salvato PRIMA che il resto della pagina venga
-  // disegnato, altrimenti chi ha scelto "chiaro" vedrebbe un lampo di
-  // tema scuro (il default di :root) a ogni caricamento.
-  try { document.documentElement.setAttribute("data-theme", localStorage.getItem("foamy_theme") || "dark"); } catch (e) {}
+  // disegnato, altrimenti chi ha scelto "scuro" vedrebbe un lampo di
+  // tema chiaro (il default di :root[data-theme="light"]) a ogni
+  // caricamento. Chiaro è il default per chi non ha ancora scelto.
+  try { document.documentElement.setAttribute("data-theme", localStorage.getItem("foamy_theme") || "light"); } catch (e) {}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -33,9 +34,9 @@
     --font-data: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
   }
   /* Tema chiaro: stessa identità (teal come accento), luminosità invertita.
-     Attivato mettendo data-theme="light" su <html> (vedi toggleTheme()) —
-     dark resta il default per chi non ha mai scelto, per non sorprendere
-     chi già usa il sito così com'è. I colori dei grafici Forecast (onde/
+     È il default per chi non ha ancora scelto (vedi lo script in <head> e
+     getTheme()) — lo scuro resta disponibile con un click sul pulsante
+     tema, per chi lo preferisce. I colori dei grafici Forecast (onde/
      vento, disegnati via JS in <svg>) leggono queste stesse variabili con
      fill="var(--xxx)" invece di esadecimali fissi, quindi si aggiornano da
      soli al cambio tema, senza dover ridisegnare nulla. */
@@ -108,6 +109,11 @@
   .spot-card-name { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--ink-bright); line-height: 1.25; }
   .spot-card-badges { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-top: 2px; }
   .webcam-badge { display: inline-flex; color: var(--accent); }
+  /* Vento/onda/periodo attuali, caricati in background dopo che la card
+     compare (placeholder "···" finché non arrivano) — così si vede un
+     accenno delle condizioni prima ancora di aprire lo spot. */
+  .spot-card-live { display: flex; gap: 14px; font-family: var(--font-data); font-size: 11px; color: var(--ink-dim); }
+  .spot-card-live b { color: var(--ink-bright); font-weight: 600; }
   .spot-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
   .spot-card-fav { display: inline-flex; align-items: center; justify-content: center; color: var(--ink-dim); cursor: pointer; padding: 4px; margin: -4px; border-radius: 50%; }
   .spot-card-fav:hover { color: var(--accent-soft); background: var(--surface-2); }
@@ -366,7 +372,7 @@ const API_BASE = "https://foamy-backend-1.onrender.com";
 const THEME_KEY = "foamy_theme";
 const SUN_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
 const MOON_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>';
-function getTheme() { return document.documentElement.getAttribute("data-theme") || "dark"; }
+function getTheme() { return document.documentElement.getAttribute("data-theme") || "light"; }
 // Il pulsante mostra l'icona di ciò che si OTTIENE cliccando (sole se ora
 // è scuro, luna se ora è chiaro), non lo stato attuale — così l'azione è
 // il messaggio, non lo stato.
@@ -917,6 +923,31 @@ function regionCard(name, count) {
   return card;
 }
 
+// Condizioni live mostrate direttamente sulla card, prima di aprire lo
+// spot — cache in memoria per la durata della sessione: un toggle
+// preferiti o una ricerca ricostruisce tutte le card (render() rifà tutto
+// da zero), ma non deve ripartire da capo con le fetch per spot già
+// caricati in questa visita.
+const cardLiveCache = new Map();
+function renderCardLive(card, f) {
+  if (!f) return;
+  const windEl = card.querySelector(".scl-wind");
+  const waveEl = card.querySelector(".scl-wave");
+  const periodEl = card.querySelector(".scl-period");
+  if (windEl) windEl.textContent = f.windSpeed ?? "—";
+  if (waveEl) waveEl.textContent = f.height ?? "—";
+  if (periodEl) periodEl.textContent = f.period ?? "—";
+}
+function loadCardLiveData(card, spot) {
+  if (cardLiveCache.has(spot.id)) {
+    renderCardLive(card, cardLiveCache.get(spot.id));
+    return;
+  }
+  fetchCurrentConditions(spot)
+    .then((f) => { cardLiveCache.set(spot.id, f); renderCardLive(card, f); })
+    .catch(() => { cardLiveCache.set(spot.id, null); });
+}
+
 function spotCard(spot) {
   const card = document.createElement("button");
   card.className = "spot-card fade-up";
@@ -926,6 +957,11 @@ function spotCard(spot) {
       <span class="spot-card-badges">
         ${spot.webcam_banner ? `<span class="webcam-badge" title="Webcam disponibile">${CAMERA_ICON_SVG}</span>` : ""}
       </span>
+    </div>
+    <div class="spot-card-live">
+      <span class="scl-item"><b class="scl-wind">···</b> kn</span>
+      <span class="scl-item"><b class="scl-wave">···</b> m</span>
+      <span class="scl-item"><b class="scl-period">···</b> s</span>
     </div>
     <div class="spot-card-foot">
       <p class="spot-card-cta">Vedi condizioni live →</p>
@@ -941,6 +977,7 @@ function spotCard(spot) {
     }
     openDrawer(spot);
   };
+  loadCardLiveData(card, spot);
   return card;
 }
 
