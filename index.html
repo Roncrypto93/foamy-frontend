@@ -4,6 +4,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Foamy — Forecast</title>
+<script>
+  // Applica il tema salvato PRIMA che il resto della pagina venga
+  // disegnato, altrimenti chi ha scelto "chiaro" vedrebbe un lampo di
+  // tema scuro (il default di :root) a ogni caricamento.
+  try { document.documentElement.setAttribute("data-theme", localStorage.getItem("foamy_theme") || "dark"); } catch (e) {}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;900&family=IBM+Plex+Mono:wght@400;500;600&family=Oswald:wght@600;700&display=swap" rel="stylesheet" />
@@ -17,6 +23,7 @@
     --ink: #a9c4c2;
     --ink-dim: #6b8583;
     --ink-bright: #f4fdfc;
+    --ink-bright-rgb: 244,253,252;
     --accent: #4fd1c5;
     --accent-soft: #9be3de;
     --accent-wash: rgba(79,209,197,0.10);
@@ -25,11 +32,35 @@
     --font-display: 'Archivo', ui-sans-serif, system-ui, sans-serif;
     --font-data: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
   }
+  /* Tema chiaro: stessa identità (teal come accento), luminosità invertita.
+     Attivato mettendo data-theme="light" su <html> (vedi toggleTheme()) —
+     dark resta il default per chi non ha mai scelto, per non sorprendere
+     chi già usa il sito così com'è. I colori dei grafici Forecast (onde/
+     vento, disegnati via JS in <svg>) leggono queste stesse variabili con
+     fill="var(--xxx)" invece di esadecimali fissi, quindi si aggiornano da
+     soli al cambio tema, senza dover ridisegnare nulla. */
+  :root[data-theme="light"] {
+    --bg: #f3f8f7;
+    --surface: #ffffff;
+    --surface-2: #eaf3f2;
+    --border: rgba(11,15,25,0.09);
+    --border-strong: rgba(11,15,25,0.18);
+    --ink: #4a6360;
+    --ink-dim: #5c7472;
+    --ink-bright: #0b1a18;
+    --ink-bright-rgb: 11,15,25;
+    --accent: #128077;
+    --accent-soft: #0e6961;
+    --accent-wash: rgba(18,128,119,0.10);
+    --alert: #c23a37;
+    --sun: #9c6f0b;
+  }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
     background: var(--bg); color: var(--ink); font-family: var(--font-display);
     -webkit-font-smoothing: antialiased; min-height: 100vh; display: flex; flex-direction: column;
+    transition: background-color .2s ease, color .2s ease;
   }
   ::selection { background: var(--accent); color: #00201d; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -55,6 +86,12 @@
   .brand-name { font-family: 'Oswald', var(--font-display); font-weight: 700; font-size: 22px; color: var(--ink-bright); letter-spacing: -0.01em; text-transform: uppercase; }
   .brand-tag { font-family: var(--font-data); font-weight: 500; font-size: 10.5px; color: var(--accent); text-transform: uppercase; letter-spacing: .16em; }
 
+  .topbar-actions { display: flex; align-items: center; gap: 12px; }
+  /* Un solo pulsante per passare da scuro a chiaro e viceversa — mostra
+     l'icona di ciò che OTTIENI cliccando (sole se sei in scuro, luna se
+     sei in chiaro), non lo stato attuale. */
+  .theme-toggle { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex-shrink: 0; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 50%; color: var(--ink-bright); cursor: pointer; padding: 0; transition: border-color .12s, color .12s; }
+  .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
   .filters { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; min-width: 0; flex: 1 1 320px; max-width: 100%; }
   .search-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; width: 100%; }
   .search-input { background: var(--surface); border: 1px solid var(--border-strong); color: var(--ink-bright); font-family: var(--font-data); font-size: 12px; padding: 7px 10px; border-radius: 4px; flex: 1 1 140px; min-width: 0; }
@@ -201,18 +238,18 @@
      larghezza fissa in px (impostata via JS) più larga del contenitore,
      mentre le etichette "Vento"/"Mare" restano della loro larghezza
      naturale invece di stirarsi al 100%. */
-  .forecast-chart-wrap { position: relative; display: flex; flex-direction: column; align-items: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x; overscroll-behavior-x: contain; scrollbar-width: thin; scrollbar-color: rgba(222,242,241,0.14) transparent; }
+  .forecast-chart-wrap { position: relative; display: flex; flex-direction: column; align-items: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x; overscroll-behavior-x: contain; scrollbar-width: thin; scrollbar-color: rgba(var(--ink-bright-rgb),0.14) transparent; }
   .forecast-chart-wrap::-webkit-scrollbar { height: 3px; }
   .forecast-chart-wrap::-webkit-scrollbar-track { background: transparent; }
-  .forecast-chart-wrap::-webkit-scrollbar-thumb { background: rgba(222,242,241,0.14); border-radius: 2px; }
-  .forecast-chart-wrap::-webkit-scrollbar-thumb:hover { background: rgba(222,242,241,0.3); }
+  .forecast-chart-wrap::-webkit-scrollbar-thumb { background: rgba(var(--ink-bright-rgb),0.14); border-radius: 2px; }
+  .forecast-chart-wrap::-webkit-scrollbar-thumb:hover { background: rgba(var(--ink-bright-rgb),0.3); }
   /* Divisori di fine giornata: un solo overlay assoluto che copre l'intera
      altezza del banner (vento + mare), invece di due <line> separate per
      ciascuna <svg> — così la linea è visivamente continua, senza "buco" in
      corrispondenza dell'etichetta "Mare". Posizionato/misurato via JS dopo
      il render di entrambi i grafici (vedi renderForecastDayDividers). */
   .forecast-day-dividers { position: absolute; top: 0; left: 0; width: 0; height: 0; pointer-events: none; }
-  .forecast-day-divider-line { position: absolute; width: 1.5px; background: rgba(222,242,241,0.3); }
+  .forecast-day-divider-line { position: absolute; width: 1.5px; background: rgba(var(--ink-bright-rgb),0.3); }
   .legend-swatch--gradient {
     width: 46px; height: 6px; border-radius: 2px;
     background: linear-gradient(90deg, #fff 0%, #4fd1c5 18%, #86e08a 31%, #f2d94e 44%, #f2994e 60%, #e0524f 78%, #b06ae0 100%);
@@ -286,11 +323,14 @@
         <span class="brand-tag">Forecast</span>
       </div>
     </div>
-    <button class="chip-btn" id="favShortcut" style="display:none">★ Preferiti</button>
-    <div class="filters" id="filtersBar" style="display:none">
-      <div class="search-row">
-        <input id="search" class="search-input" type="text" placeholder="Cerca spot…" autocomplete="off" />
-        <div class="chip-row" id="favBar"></div>
+    <div class="topbar-actions">
+      <button class="theme-toggle" id="themeToggle" aria-label="Cambia tema chiaro/scuro" title="Cambia tema chiaro/scuro"></button>
+      <button class="chip-btn" id="favShortcut" style="display:none">★ Preferiti</button>
+      <div class="filters" id="filtersBar" style="display:none">
+        <div class="search-row">
+          <input id="search" class="search-input" type="text" placeholder="Cerca spot…" autocomplete="off" />
+          <div class="chip-row" id="favBar"></div>
+        </div>
       </div>
     </div>
   </header>
@@ -316,6 +356,33 @@
 <script>
 // URL del backend foamy-backend (Node/Express), deployato su Render.
 const API_BASE = "https://foamy-backend-1.onrender.com";
+
+// Tema chiaro/scuro: l'attributo su <html> è già impostato da uno script
+// nell'<head> (prima di questo, per evitare il lampo di tema sbagliato);
+// qui si tengono solo le icone e la funzione di toggle. I colori dei
+// grafici Forecast (disegnati via JS in <svg>, non CSS) usano fill="var(--x)"
+// invece di esadecimali fissi, quindi si aggiornano da soli quando cambia
+// l'attributo — nessun ridisegno necessario al cambio tema.
+const THEME_KEY = "foamy_theme";
+const SUN_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+const MOON_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>';
+function getTheme() { return document.documentElement.getAttribute("data-theme") || "dark"; }
+// Il pulsante mostra l'icona di ciò che si OTTIENE cliccando (sole se ora
+// è scuro, luna se ora è chiaro), non lo stato attuale — così l'azione è
+// il messaggio, non lo stato.
+function applyThemeIcon() {
+  const icon = getTheme() === "light" ? MOON_ICON_SVG : SUN_ICON_SVG;
+  const btn1 = document.getElementById("themeToggle");
+  if (btn1) btn1.innerHTML = icon;
+  const btn2 = document.getElementById("drawerThemeToggle");
+  if (btn2) btn2.innerHTML = icon;
+}
+function toggleTheme() {
+  const next = getTheme() === "light" ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", next);
+  try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+  applyThemeIcon();
+}
 
 const FALLBACK_SPOTS = [
   {"id":"san-foca","name":"San Foca (Li Marangi)","coast":"Adriatico","disciplines":["wave","kite"],"lat":40.3244,"lon":18.4269,"webcam_banner":{"provider":"SkylineWebcams","url":"https://www.skylinewebcams.com/it/webcam/italia/puglia/lecce/san-foca.html"}},
@@ -737,7 +804,7 @@ function arrowSVG(deg, size) {
   <div class="arrow-widget" style="width:${size}px">
     <svg width="${size}" height="${size}" viewBox="-8 -8 16 16" role="img" aria-label="Direzione del vento">
       <g class="needle" style="--needle-deg:${pointDeg}deg; transform: rotate(${pointDeg}deg); transform-origin:0 0">
-        <path d="M0,-6 L-4,5 L0,2 L4,5 Z" fill="#f4fdfc"/>
+        <path d="M0,-6 L-4,5 L0,2 L4,5 Z" fill="var(--ink-bright)"/>
       </g>
     </svg>
   </div>`;
@@ -814,12 +881,21 @@ function spotRegion(spot) { return spot.region || "Puglia"; }
 // Castellammare/Capo San Vito (costa nord, con le due insenature), Trapani/
 // Marsala-Capo Lilibeo (punta O), Mazara/Sciacca/Agrigento/Gela (costa
 // sud), Punta Secca/Capo Passero (punta SE), Siracusa/Catania/Taormina
-// (costa Ionica). Le regioni non ancora mappate usano una sagoma "stivale
-// d'Italia" generica come segnaposto, da sostituire con la stessa tecnica
-// quando si aggiunge quella regione.
+// (costa Ionica). Emilia-Romagna: a differenza di Puglia/Sicilia (dove la
+// costa disegna quasi tutta la sagoma regionale) qui la regione si estende
+// molto nell'entroterra (pianura padana, Appennino) che non ha alcun senso
+// per un'app di soli spot costieri — quindi non è la sagoma amministrativa
+// intera ma una sottile fascia stilizzata della sola Riviera Romagnola,
+// stessa tecnica di proiezione, punti reali usati nord→sud: Casalborsetti,
+// Porto Corsini (diga del porto di Ravenna, unico punto che sporge verso
+// mare), Cervia, Cesenatico, Rimini (molo del porto), Riccione, Porto
+// Verde (punta sud, verso Cattolica). Le regioni non ancora mappate usano
+// una sagoma "stivale d'Italia" generica come segnaposto, da sostituire
+// con la stessa tecnica quando si aggiunge quella regione.
 const REGION_MAPS = {
   "Puglia": { viewBox: "0 0 100 156", d: "M85,12 L55,4 L40,18 L48,30 L56,50 L52,72 L56,92 L50,112 L52,130 L42,150 L32,135 L26,115 L38,98 L24,82 L30,62 L18,45 L26,28 Z" },
   "Sicilia": { viewBox: "0 0 286 178", d: "M285,1 L248,0 L141,26 L79,4 L41,24 L27,10 L8,28 L0,52 L15,69 L59,84 L98,109 L160,133 L179,158 L240,177 L253,133 L235,86 L253,47 Z" },
+  "Emilia-Romagna": { viewBox: "0 0 55 70", d: "M10,0 L12,8 L16,32 L20,40 L34,53 L40,61 L45,65 L32,61 L26,53 L12,40 L8,32 L4,8 Z" },
   "_default": { viewBox: "0 0 100 156", d: "M60,4 C72,4 70,16 78,22 C86,28 84,40 76,46 C82,54 80,66 70,70 C74,80 68,92 58,94 C62,104 56,116 46,116 C48,126 40,136 30,132 C24,140 12,138 10,128 C4,124 6,112 14,108 C8,100 12,88 22,86 C16,76 22,64 32,62 C28,50 36,38 48,38 C44,26 52,14 60,4 Z" },
 };
 function regionMapSVG(name) {
@@ -926,6 +1002,8 @@ function render() {
 }
 document.getElementById("backToRegions").onclick = () => { state.region = null; state.query = ""; state.favoritesOnly = false; document.getElementById("search").value = ""; render(); };
 document.getElementById("favShortcut").onclick = () => { state.region = FAVORITES_VIEW; render(); };
+document.getElementById("themeToggle").onclick = toggleTheme;
+applyThemeIcon();
 document.getElementById("resetFilters").onclick = () => { state.query = ""; state.favoritesOnly = false; document.getElementById("search").value = ""; render(); };
 document.getElementById("search").addEventListener("input", (e) => { state.query = e.target.value; render(); });
 
@@ -1057,7 +1135,7 @@ function renderWaveChart(svgEl_, chart) {
   if (!n) {
     svgEl_.removeAttribute("style");
     svgEl_.setAttribute("viewBox", `0 0 640 ${WAVE3_CHART_H}`);
-    const t = svgElNS("text", { x: 320, y: WAVE3_CHART_H / 2, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 12, fill: "#6b8583" });
+    const t = svgElNS("text", { x: 320, y: WAVE3_CHART_H / 2, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 12, fill: "var(--ink-dim)" });
     t.textContent = "Dati onda non disponibili";
     svgEl_.appendChild(t);
     return;
@@ -1088,7 +1166,7 @@ function renderWaveChart(svgEl_, chart) {
       // alla stessa altezza a cui atterra il valore delle altre bar quando
       // sono troppo basse per contenerlo (appena sopra la baseline) — così
       // tutte le colonne, con o senza bar, leggono lungo la stessa riga.
-      const flatLbl = svgElNS("text", { x: cx, y: (WAVE3_BAR_BASELINE - 3).toFixed(1), "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 700, "font-size": 9, fill: "#f4fdfc" });
+      const flatLbl = svgElNS("text", { x: cx, y: (WAVE3_BAR_BASELINE - 3).toFixed(1), "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 700, "font-size": 9, fill: "var(--ink-bright)" });
       flatLbl.textContent = "FLAT";
       svgEl_.appendChild(flatLbl);
     } else {
@@ -1109,13 +1187,13 @@ function renderWaveChart(svgEl_, chart) {
       const heightLbl = svgElNS("text", {
         x: cx, y: (labelFits ? yTop + 12 : yTop - 3).toFixed(1),
         "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 700, "font-size": 9.5,
-        fill: labelFits ? waveBarInk(heights[i]) : "#f4fdfc",
+        fill: labelFits ? waveBarInk(heights[i]) : "var(--ink-bright)",
       });
       heightLbl.textContent = heights[i].toFixed(1);
       svgEl_.appendChild(heightLbl);
 
       // Periodo, testo semplice sotto la bar (niente per i punti FLAT).
-      const periodLbl = svgElNS("text", { x: cx, y: WAVE3_BAR_BASELINE + 12, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 10, fill: "#9be3de" });
+      const periodLbl = svgElNS("text", { x: cx, y: WAVE3_BAR_BASELINE + 12, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 10, fill: "var(--accent-soft)" });
       periodLbl.textContent = p.wavePeriodS != null ? Math.round(p.wavePeriodS) : "—";
       svgEl_.appendChild(periodLbl);
     }
@@ -1127,9 +1205,9 @@ function renderWaveChart(svgEl_, chart) {
     const boxH = 15;
     svgEl_.appendChild(svgElNS("rect", {
       x: (cx - 15).toFixed(1), y: boxY, width: 30, height: boxH, rx: 2,
-      fill: "rgba(244,253,252,0.06)", stroke: "rgba(244,253,252,0.22)", "stroke-width": 1,
+      fill: "rgba(var(--ink-bright-rgb),0.06)", stroke: "rgba(var(--ink-bright-rgb),0.22)", "stroke-width": 1,
     }));
-    const energyLbl = svgElNS("text", { x: cx, y: boxY + boxH / 2 + 3.5, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": energyKJ != null && energyKJ > 100 ? 700 : 400, "font-size": 10, fill: "#f4fdfc" });
+    const energyLbl = svgElNS("text", { x: cx, y: boxY + boxH / 2 + 3.5, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": energyKJ != null && energyKJ > 100 ? 700 : 400, "font-size": 10, fill: "var(--ink-bright)" });
     energyLbl.textContent = energyKJ != null ? energyKJ : "—";
     svgEl_.appendChild(energyLbl);
 
@@ -1139,10 +1217,10 @@ function renderWaveChart(svgEl_, chart) {
     const dir = p.waveDirectionDeg;
     if (dir != null) {
       const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},${WAVE3_DIR_TOP + 9}) rotate(${dir + 180})` });
-      g.appendChild(svgElNS("path", { d: "M0,-6 L-4,5 L0,2 L4,5 Z", fill: "#f4fdfc" }));
+      g.appendChild(svgElNS("path", { d: "M0,-6 L-4,5 L0,2 L4,5 Z", fill: "var(--ink-bright)" }));
       svgEl_.appendChild(g);
 
-      const dirLbl = svgElNS("text", { x: cx, y: WAVE3_DIR_TOP + 26, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 9, fill: "#9be3de" });
+      const dirLbl = svgElNS("text", { x: cx, y: WAVE3_DIR_TOP + 26, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 9, fill: "var(--accent-soft)" });
       dirLbl.textContent = cardinal16(dir);
       svgEl_.appendChild(dirLbl);
     }
@@ -1212,7 +1290,7 @@ function renderWindChart(svgEl_, windChart) {
   if (!n) {
     svgEl_.removeAttribute("style");
     svgEl_.setAttribute("viewBox", `0 0 640 ${WIND2_CHART_H}`);
-    const t = svgElNS("text", { x: 320, y: WIND2_CHART_H / 2, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 12, fill: "#6b8583" });
+    const t = svgElNS("text", { x: 320, y: WIND2_CHART_H / 2, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 12, fill: "var(--ink-dim)" });
     t.textContent = "Dati vento non disponibili";
     svgEl_.appendChild(t);
     return;
@@ -1236,7 +1314,7 @@ function renderWindChart(svgEl_, windChart) {
 
     // Ora, in alto insieme al nome del giorno (una per colonna).
     const time = new Date(windChart[i].time);
-    const hourLbl = svgElNS("text", { x: cx, y: WIND2_DAY_H + WIND2_HOUR_H - 4, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 10.5, fill: "#6b8583" });
+    const hourLbl = svgElNS("text", { x: cx, y: WIND2_DAY_H + WIND2_HOUR_H - 4, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 10.5, fill: "var(--ink-dim)" });
     hourLbl.textContent = String(time.getHours()).padStart(2, "0");
     svgEl_.appendChild(hourLbl);
 
@@ -1265,10 +1343,10 @@ function renderWindChart(svgEl_, windChart) {
     const dir = windChart[i].windDirectionDeg;
     if (dir != null) {
       const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},${WIND2_DIR_ZONE_TOP + 9}) rotate(${dir + 180})` });
-      g.appendChild(svgElNS("path", { d: "M0,-6 L-4,5 L0,2 L4,5 Z", fill: "#f4fdfc" }));
+      g.appendChild(svgElNS("path", { d: "M0,-6 L-4,5 L0,2 L4,5 Z", fill: "var(--ink-bright)" }));
       svgEl_.appendChild(g);
 
-      const dirLbl = svgElNS("text", { x: cx, y: WIND2_DIR_ZONE_TOP + 26, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 9, fill: "#9be3de" });
+      const dirLbl = svgElNS("text", { x: cx, y: WIND2_DIR_ZONE_TOP + 26, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 9, fill: "var(--accent-soft)" });
       dirLbl.textContent = cardinal16(dir);
       svgEl_.appendChild(dirLbl);
     }
@@ -1278,7 +1356,7 @@ function renderWindChart(svgEl_, windChart) {
     const idx = Math.min(d * POINTS_PER_DAY + Math.floor(POINTS_PER_DAY / 2), n - 1);
     const dateStr = windChart[idx].time.slice(0, 10);
     const cx = (d * POINTS_PER_DAY + POINTS_PER_DAY / 2) * WIND2_COL_W;
-    const dayLbl = svgElNS("text", { x: cx, y: WIND2_DAY_H - 5, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 700, "font-size": 12, fill: "#9be3de" });
+    const dayLbl = svgElNS("text", { x: cx, y: WIND2_DAY_H - 5, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 700, "font-size": 12, fill: "var(--accent-soft)" });
     dayLbl.textContent = dayLabel(dateStr, d);
     svgEl_.appendChild(dayLbl);
   }
@@ -1423,7 +1501,10 @@ function openDrawer(spot) {
                 <h2 class="drawer-title">${spot.name}</h2>
               </div>
             </div>
-            <button class="drawer-close" id="closeBtn" aria-label="Chiudi pannello">×</button>
+            <div style="display:flex; align-items:center; gap:10px; flex-shrink:0">
+              <button class="theme-toggle" id="drawerThemeToggle" aria-label="Cambia tema chiaro/scuro" title="Cambia tema chiaro/scuro"></button>
+              <button class="drawer-close" id="closeBtn" aria-label="Chiudi pannello">×</button>
+            </div>
           </div>
         </div>
         <div id="drawerBody" class="drawer-body drawer-body-inner">
@@ -1433,6 +1514,8 @@ function openDrawer(spot) {
     </div>
   `;
   document.getElementById("closeBtn").onclick = closeDrawer;
+  document.getElementById("drawerThemeToggle").onclick = toggleTheme;
+  applyThemeIcon();
   document.addEventListener("keydown", escHandler);
 
   fetchCurrentConditions(spot)
@@ -1494,9 +1577,9 @@ function openDrawer(spot) {
 }
 
 render();
-// Solo Puglia per ora: la Sicilia (già presente nei dati del backend) è
-// tolta temporaneamente dal frontend, ci si lavora più avanti.
-loadSpots().then((spots) => { SPOTS = spots.filter((s) => spotRegion(s) === "Puglia"); render(); });
+// Sicilia esclusa per ora (dati già presenti sul backend, si riprende più
+// avanti); Emilia-Romagna è invece visibile subito insieme alla Puglia.
+loadSpots().then((spots) => { SPOTS = spots.filter((s) => spotRegion(s) !== "Sicilia"); render(); });
 
 </script>
 </body>
