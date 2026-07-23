@@ -548,10 +548,12 @@ function calculateSurfRating(waveHeightM, wavePeriodS, windSpeedKn, windDirectio
 }
 
 // Tutti e 6 i livelli hanno un colore (rivisto insieme all'utente il
-// 2026-07-23): scala ascendente rosso→arancio→giallo→verde→oro, Flat a
-// parte in grigio neutro (nessuna condizione, non "cattiva" come Bad).
+// 2026-07-23): scala ascendente rosso→arancio→giallo→verde→oro. Flat e Bad
+// condividono lo stesso rosso — a differenza di com'era stato impostato la
+// prima volta (Flat grigio neutro), qui Flat conta come "non conviene"
+// tanto quanto Bad, non come categoria a parte.
 const SURF_RATING_COLORS = {
-  Flat: "#7a8b89",
+  Flat: "#e0524f",
   Bad: "#e0524f",
   Fair: "#e0954f",
   Good: "#e0cf4f",
