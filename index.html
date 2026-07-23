@@ -1171,7 +1171,13 @@ const WAVE3_BAR_BASELINE = WAVE3_BAR_TOP + WAVE3_BAR_MAX_H;
 const WAVE3_BELOW_ZONE_H = 34; // periodo + energia, sotto la bar
 const WAVE3_DIR_TOP = WAVE3_BAR_BASELINE + WAVE3_BELOW_ZONE_H + 2;
 const WAVE3_DIR_H = 32;
-const WAVE3_CHART_H = WAVE3_DIR_TOP + WAVE3_DIR_H + 3;
+// Punteggio surf (Flat..Perfect), barra orizzontale piena in fondo al
+// grafico — stessa tabella colori della barra verticale sulla card spot
+// (SURF_RATING_COLORS), stesso dato già calcolato per punto (p.surfRating,
+// vedi fetchWeeklyData), nessun ricalcolo qui.
+const WAVE3_SCORE_TOP = WAVE3_DIR_TOP + WAVE3_DIR_H + 6;
+const WAVE3_SCORE_H = 14;
+const WAVE3_CHART_H = WAVE3_SCORE_TOP + WAVE3_SCORE_H + 3;
 
 // Scala colore altezza onda: le stesse tappe esatte della scala vento
 // (WIND_COLOR_STOPS, non punti interpolati a caso lungo il gradiente) così
@@ -1286,6 +1292,22 @@ function renderWaveChart(svgEl_, chart) {
       dirLbl.textContent = cardinal16(dir);
       svgEl_.appendChild(dirLbl);
     }
+
+    // Punteggio surf: barra piena colorata, stessa tabella della card spot
+    // — mostrata anche per i punti FLAT (Flat è un livello valido, stesso
+    // rosso di Bad). Grigia/neutra solo se il dato manca del tutto.
+    const level = p.surfRating?.rating;
+    const scoreColor = level && SURF_RATING_COLORS[level] ? SURF_RATING_COLORS[level] : "rgba(var(--ink-bright-rgb),0.12)";
+    const scoreRect = svgElNS("rect", {
+      x: (cx - barW / 2).toFixed(1), y: WAVE3_SCORE_TOP, width: barW.toFixed(1), height: WAVE3_SCORE_H, rx: 2,
+      fill: scoreColor,
+    });
+    if (level) {
+      const titleEl = svgElNS("title", {});
+      titleEl.textContent = level;
+      scoreRect.appendChild(titleEl);
+    }
+    svgEl_.appendChild(scoreRect);
   }
 }
 
@@ -1445,7 +1467,8 @@ function forecastLegendHTML() {
         ${item(0, WAVE3_BAR_BASELINE, "Altezza onda (m)")}
         ${item(wavePeriodTop, wavePeriodH, "Periodo (s)")}
         ${item(waveEnergyTop, waveEnergyH, "Energia (kJ)")}
-        ${item(WAVE3_DIR_TOP, WAVE3_DIR_H + 3, "Direzione")}
+        ${item(WAVE3_DIR_TOP, WAVE3_DIR_H, "Direzione")}
+        ${item(WAVE3_SCORE_TOP, WAVE3_SCORE_H, "Punteggio")}
       </div>
     </div>
   `;
