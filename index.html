@@ -106,6 +106,11 @@
   .spot-card { text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; cursor: pointer; transition: border-color .15s, background .15s; }
   .spot-card:hover { border-color: var(--accent); background: var(--surface-2); }
   .spot-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .spot-card-name-row { display: flex; align-items: stretch; gap: 8px; min-width: 0; }
+  /* Condizione complessiva dello spot (Flat/Bad/Fair/Good/Great/Perfect),
+     stesso colore in entrambi i temi: è un dato, non un colore di
+     interfaccia — grigio neutro finché la fetch live non risponde. */
+  .rating-bar { width: 4px; min-height: 20px; border-radius: 2px; background: var(--border-strong); flex-shrink: 0; }
   .spot-card-name { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--ink-bright); line-height: 1.25; }
   .spot-card-badges { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-top: 2px; }
   .webcam-badge { display: inline-flex; color: var(--accent); }
@@ -542,17 +547,17 @@ function calculateSurfRating(waveHeightM, wavePeriodS, windSpeedKn, windDirectio
   return { rating, baseLevel, windEffect };
 }
 
-// Colori solo per i 4 livelli mostrati all'utente (Flat/Bad non hanno mai
-// un indicatore visibile — vedi SURF_RATING_VISIBLE più sotto).
+// Tutti e 6 i livelli hanno un colore (rivisto insieme all'utente il
+// 2026-07-23): scala ascendente rosso→arancio→giallo→verde→oro, Flat a
+// parte in grigio neutro (nessuna condizione, non "cattiva" come Bad).
 const SURF_RATING_COLORS = {
-  Fair: "#e0cf4f",
-  Good: "#a3c65a",
+  Flat: "#7a8b89",
+  Bad: "#e0524f",
+  Fair: "#e0954f",
+  Good: "#e0cf4f",
   Great: "#86e08a",
-  Perfect: "#b06ae0",
+  Perfect: "#e0b84f",
 };
-// Solo questi livelli mostrano il logo colorato: l'obiettivo è segnalare
-// quando conviene surfare, non evidenziare quando non conviene.
-const SURF_RATING_VISIBLE = new Set(["Fair", "Good", "Great", "Perfect"]);
 
 function round(v, d) {
   if (v == null) return null;
@@ -937,6 +942,19 @@ function renderCardLive(card, f) {
   if (windEl) windEl.textContent = f.windSpeed ?? "—";
   if (waveEl) waveEl.textContent = f.height ?? "—";
   if (periodEl) periodEl.textContent = f.period ?? "—";
+  // f.surfRating è { rating, baseLevel, windEffect } (vedi
+  // calculateSurfRating), non una stringa — il livello vero è .rating.
+  // null è un esito valido e definitivo (es. spot solo kite/wind, senza
+  // onda) — la barra resta grigia ma il tooltip non deve più dire "non
+  // ancora nota" una volta che la fetch è comunque tornata.
+  const bar = card.querySelector(".rating-bar");
+  const level = f.surfRating?.rating;
+  if (bar && level && SURF_RATING_COLORS[level]) {
+    bar.style.background = SURF_RATING_COLORS[level];
+    bar.title = level;
+  } else if (bar) {
+    bar.title = "Condizione non disponibile per questo spot";
+  }
 }
 function loadCardLiveData(card, spot) {
   if (cardLiveCache.has(spot.id)) {
@@ -953,7 +971,10 @@ function spotCard(spot) {
   card.className = "spot-card fade-up";
   card.innerHTML = `
     <div class="spot-card-head">
-      <span class="spot-card-name">${spot.name}</span>
+      <span class="spot-card-name-row">
+        <span class="rating-bar" title="Condizione non ancora nota"></span>
+        <span class="spot-card-name">${spot.name}</span>
+      </span>
       <span class="spot-card-badges">
         ${spot.webcam_banner ? `<span class="webcam-badge" title="Webcam disponibile">${CAMERA_ICON_SVG}</span>` : ""}
       </span>
