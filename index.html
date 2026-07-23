@@ -31,7 +31,14 @@
     --alert: #e0524f;
     --sun: #e0b84f;
     --font-display: 'Archivo', ui-sans-serif, system-ui, sans-serif;
-    --font-data: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    /* Un solo font in tutto il layout (richiesto esplicitamente): --font-data
+       ora punta allo stesso stack di --font-display invece che a IBM Plex
+       Mono. Il nome della variabile resta per non dover toccare ogni singolo
+       punto che la usa — cambia solo cosa risolve. L'unica eccezione voluta
+       è .forecast-sub-label ("Vento"/"Mare" nel forecast), che tiene un
+       font-family proprio invece di questa variabile. IBM Plex Mono resta
+       importato da Google Fonts solo per quella. */
+    --font-data: 'Archivo', ui-sans-serif, system-ui, sans-serif;
   }
   /* Tema chiaro: stessa identità (teal come accento), luminosità invertita.
      È il default per chi non ha ancora scelto (vedi lo script in <head> e
@@ -126,6 +133,13 @@
   .spot-card-cta { font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); }
   .spot-card:hover .spot-card-cta { color: var(--accent); }
 
+  /* Testo di apertura sopra la griglia regioni — solo al livello home,
+     nascosto non appena si entra in una regione (vedi render()). */
+  .home-hero { padding: 28px 0 6px; }
+  .home-hero-title { font-family: var(--font-display); font-weight: 900; font-size: 32px; color: var(--ink-bright); margin: 0 0 10px; line-height: 1.15; }
+  .home-hero-subtitle { font-family: var(--font-display); font-size: 15px; color: var(--ink); margin: 0 0 8px; max-width: 560px; line-height: 1.5; }
+  .home-hero-tagline { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--accent); margin: 0; }
+
   /* Home a due livelli: prima le regioni (oggi solo Puglia, ma pensata per
      più regioni italiane in futuro), poi — cliccando una regione — la
      griglia spot di sempre, filtrata su quella regione. */
@@ -210,7 +224,10 @@
     .swell-block { padding-left: 0; border-left: none; padding-top: 16px; border-top: 1px solid var(--border); }
   }
 
-  .forecast-sub-label { font-family: var(--font-data); font-weight: 600; font-size: 12px; color: var(--ink-bright); margin: 0 0 8px; }
+  /* Unica eccezione al font unico del resto del layout, a richiesta:
+     "Vento"/"Mare" restano nel monospace originale invece di passare ad
+     Archivo come tutto il resto. */
+  .forecast-sub-label { font-family: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace; font-weight: 600; font-size: 12px; color: var(--ink-bright); margin: 0 0 8px; }
   /* Indice a sinistra dei due grafici: spiega cosa rappresenta ogni riga
      (vento/raffiche/direzione, altezza/periodo/energia/direzione) senza
      dover indovinare scorrendo. Fuori dal contenitore che scrolla in
@@ -347,6 +364,11 @@
   </header>
 
   <main>
+    <section class="home-hero" id="homeHero">
+      <h1 class="home-hero-title">Previsioni vere, un solo posto.</h1>
+      <p class="home-hero-subtitle">Forecast di mare e vento accurati per il Mediterraneo, con webcam disponibili sui principali spot.</p>
+      <p class="home-hero-tagline">Let's get foamy.</p>
+    </section>
     <button class="back-to-regions" id="backToRegions" style="display:none">← Tutte le regioni</button>
     <div id="regionGrid" class="region-grid"></div>
     <div id="grid" class="grid"></div>
@@ -1005,6 +1027,7 @@ function spotCard(spot) {
 }
 
 function render() {
+  const homeHero = document.getElementById("homeHero");
   const regionGrid = document.getElementById("regionGrid");
   const grid = document.getElementById("grid");
   const empty = document.getElementById("emptyState");
@@ -1016,6 +1039,7 @@ function render() {
     // Livello 1: scelta della regione — niente ricerca/preferiti qui
     // (riguardano gli spot dentro una regione), solo la scorciatoia ai
     // preferiti globali in alto a destra.
+    homeHero.style.display = "block";
     regionGrid.style.display = "grid";
     grid.style.display = "none";
     empty.style.display = "none";
@@ -1038,6 +1062,7 @@ function render() {
   // ulteriormente, ma non ha senso nella vista preferiti (è già tutto
   // filtrato), quindi lì si nasconde.
   const isFavView = state.region === FAVORITES_VIEW;
+  homeHero.style.display = "none";
   regionGrid.style.display = "none";
   filtersBar.style.display = "flex";
   backBtn.style.display = "inline-flex";
@@ -1176,7 +1201,7 @@ const WAVE3_DIR_H = 32;
 // (SURF_RATING_COLORS), stesso dato già calcolato per punto (p.surfRating,
 // vedi fetchWeeklyData), nessun ricalcolo qui.
 const WAVE3_SCORE_TOP = WAVE3_DIR_TOP + WAVE3_DIR_H + 6;
-const WAVE3_SCORE_H = 14;
+const WAVE3_SCORE_H = 5; // sottile come la barra verticale sulla card spot
 const WAVE3_CHART_H = WAVE3_SCORE_TOP + WAVE3_SCORE_H + 3;
 
 // Scala colore altezza onda: le stesse tappe esatte della scala vento
@@ -1203,7 +1228,7 @@ function renderWaveChart(svgEl_, chart) {
   if (!n) {
     svgEl_.removeAttribute("style");
     svgEl_.setAttribute("viewBox", `0 0 640 ${WAVE3_CHART_H}`);
-    const t = svgElNS("text", { x: 320, y: WAVE3_CHART_H / 2, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 12, fill: "var(--ink-dim)" });
+    const t = svgElNS("text", { x: 320, y: WAVE3_CHART_H / 2, "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-size": 12, fill: "var(--ink-dim)" });
     t.textContent = "Dati onda non disponibili";
     svgEl_.appendChild(t);
     return;
@@ -1234,7 +1259,7 @@ function renderWaveChart(svgEl_, chart) {
       // alla stessa altezza a cui atterra il valore delle altre bar quando
       // sono troppo basse per contenerlo (appena sopra la baseline) — così
       // tutte le colonne, con o senza bar, leggono lungo la stessa riga.
-      const flatLbl = svgElNS("text", { x: cx, y: (WAVE3_BAR_BASELINE - 3).toFixed(1), "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 700, "font-size": 9, fill: "var(--ink-bright)" });
+      const flatLbl = svgElNS("text", { x: cx, y: (WAVE3_BAR_BASELINE - 3).toFixed(1), "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-weight": 700, "font-size": 9, fill: "var(--ink-bright)" });
       flatLbl.textContent = "FLAT";
       svgEl_.appendChild(flatLbl);
     } else {
@@ -1254,14 +1279,14 @@ function renderWaveChart(svgEl_, chart) {
       const labelFits = h >= 14;
       const heightLbl = svgElNS("text", {
         x: cx, y: (labelFits ? yTop + 12 : yTop - 3).toFixed(1),
-        "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 700, "font-size": 9.5,
+        "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-weight": 700, "font-size": 9.5,
         fill: labelFits ? waveBarInk(heights[i]) : "var(--ink-bright)",
       });
       heightLbl.textContent = heights[i].toFixed(1);
       svgEl_.appendChild(heightLbl);
 
       // Periodo, testo semplice sotto la bar (niente per i punti FLAT).
-      const periodLbl = svgElNS("text", { x: cx, y: WAVE3_BAR_BASELINE + 12, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 10, fill: "var(--accent-soft)" });
+      const periodLbl = svgElNS("text", { x: cx, y: WAVE3_BAR_BASELINE + 12, "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-size": 10, fill: "var(--accent-soft)" });
       periodLbl.textContent = p.wavePeriodS != null ? Math.round(p.wavePeriodS) : "—";
       svgEl_.appendChild(periodLbl);
     }
@@ -1275,7 +1300,7 @@ function renderWaveChart(svgEl_, chart) {
       x: (cx - 15).toFixed(1), y: boxY, width: 30, height: boxH, rx: 2,
       fill: "rgba(var(--ink-bright-rgb),0.06)", stroke: "rgba(var(--ink-bright-rgb),0.22)", "stroke-width": 1,
     }));
-    const energyLbl = svgElNS("text", { x: cx, y: boxY + boxH / 2 + 3.5, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": energyKJ != null && energyKJ > 100 ? 700 : 400, "font-size": 10, fill: "var(--ink-bright)" });
+    const energyLbl = svgElNS("text", { x: cx, y: boxY + boxH / 2 + 3.5, "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-weight": energyKJ != null && energyKJ > 100 ? 700 : 400, "font-size": 10, fill: "var(--ink-bright)" });
     energyLbl.textContent = energyKJ != null ? energyKJ : "—";
     svgEl_.appendChild(energyLbl);
 
@@ -1288,7 +1313,7 @@ function renderWaveChart(svgEl_, chart) {
       g.appendChild(svgElNS("path", { d: "M0,-6 L-4,5 L0,2 L4,5 Z", fill: "var(--ink-bright)" }));
       svgEl_.appendChild(g);
 
-      const dirLbl = svgElNS("text", { x: cx, y: WAVE3_DIR_TOP + 26, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 9, fill: "var(--accent-soft)" });
+      const dirLbl = svgElNS("text", { x: cx, y: WAVE3_DIR_TOP + 26, "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-weight": 600, "font-size": 9, fill: "var(--accent-soft)" });
       dirLbl.textContent = cardinal16(dir);
       svgEl_.appendChild(dirLbl);
     }
@@ -1364,7 +1389,7 @@ const WIND2_CHART_H = WIND2_DIR_ZONE_TOP + WIND2_DIR_ZONE_H + 3;
 const WIND2_INK_ON_COLOR = "#0b0f19";
 // Vento e raffiche condividono lo stesso font: stessa famiglia, peso,
 // dimensione — le due righe della tabella devono leggersi come coppia.
-const WIND2_CELL_FONT = { "font-family": "IBM Plex Mono", "font-weight": 700, "font-size": 12.5 };
+const WIND2_CELL_FONT = { "font-family": "Archivo, sans-serif", "font-weight": 700, "font-size": 12.5 };
 // Bordo scuro sottile tra una colonna e l'altra della tabella, per
 // separare bene i numeri quando due colonne adiacenti hanno colori simili.
 const WIND2_CELL_STROKE = { stroke: "rgba(11,15,25,0.4)", "stroke-width": 1 };
@@ -1374,7 +1399,7 @@ function renderWindChart(svgEl_, windChart) {
   if (!n) {
     svgEl_.removeAttribute("style");
     svgEl_.setAttribute("viewBox", `0 0 640 ${WIND2_CHART_H}`);
-    const t = svgElNS("text", { x: 320, y: WIND2_CHART_H / 2, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 12, fill: "var(--ink-dim)" });
+    const t = svgElNS("text", { x: 320, y: WIND2_CHART_H / 2, "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-size": 12, fill: "var(--ink-dim)" });
     t.textContent = "Dati vento non disponibili";
     svgEl_.appendChild(t);
     return;
@@ -1398,7 +1423,7 @@ function renderWindChart(svgEl_, windChart) {
 
     // Ora, in alto insieme al nome del giorno (una per colonna).
     const time = new Date(windChart[i].time);
-    const hourLbl = svgElNS("text", { x: cx, y: WIND2_DAY_H + WIND2_HOUR_H - 4, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-size": 10.5, fill: "var(--ink-dim)" });
+    const hourLbl = svgElNS("text", { x: cx, y: WIND2_DAY_H + WIND2_HOUR_H - 4, "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-size": 10.5, fill: "var(--ink-dim)" });
     hourLbl.textContent = String(time.getHours()).padStart(2, "0");
     svgEl_.appendChild(hourLbl);
 
@@ -1430,7 +1455,7 @@ function renderWindChart(svgEl_, windChart) {
       g.appendChild(svgElNS("path", { d: "M0,-6 L-4,5 L0,2 L4,5 Z", fill: "var(--ink-bright)" }));
       svgEl_.appendChild(g);
 
-      const dirLbl = svgElNS("text", { x: cx, y: WIND2_DIR_ZONE_TOP + 26, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 600, "font-size": 9, fill: "var(--accent-soft)" });
+      const dirLbl = svgElNS("text", { x: cx, y: WIND2_DIR_ZONE_TOP + 26, "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-weight": 600, "font-size": 9, fill: "var(--accent-soft)" });
       dirLbl.textContent = cardinal16(dir);
       svgEl_.appendChild(dirLbl);
     }
@@ -1440,7 +1465,7 @@ function renderWindChart(svgEl_, windChart) {
     const idx = Math.min(d * POINTS_PER_DAY + Math.floor(POINTS_PER_DAY / 2), n - 1);
     const dateStr = windChart[idx].time.slice(0, 10);
     const cx = (d * POINTS_PER_DAY + POINTS_PER_DAY / 2) * WIND2_COL_W;
-    const dayLbl = svgElNS("text", { x: cx, y: WIND2_DAY_H - 5, "text-anchor": "middle", "font-family": "IBM Plex Mono", "font-weight": 700, "font-size": 12, fill: "var(--accent-soft)" });
+    const dayLbl = svgElNS("text", { x: cx, y: WIND2_DAY_H - 5, "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-weight": 700, "font-size": 12, fill: "var(--accent-soft)" });
     dayLbl.textContent = dayLabel(dateStr, d);
     svgEl_.appendChild(dayLbl);
   }
