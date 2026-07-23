@@ -800,26 +800,37 @@ function starIconSVG(filled) {
 // fossero ancora privi.
 function spotRegion(spot) { return spot.region || "Puglia"; }
 
-// Sagoma stilizzata (semplificata a poligono, non un tracciato costiero
-// dettagliato) ma derivata da coordinate reali di capi/città di riferimento
-// per ogni regione — non va mai disegnata a mano "a occhio": si prendono i
-// punti notevoli della costa (capi, città sulla costa) con lon/lat reali,
-// si proiettano con x=(lon-lon0)*111*cos(lat_media), y=(lat0-lat)*111 (km,
-// nord in alto), e si collegano in ordine costiero. Ciascuna regione ha il
-// proprio viewBox, dato che la forma decide la proporzione (Puglia stretta
-// e verticale, Sicilia larga e orizzontale). Puglia: sperone del Gargano
-// (Vieste) in alto, tacco del Salento che si restringe fino a Leuca in
-// fondo, rientranza del golfo di Taranto sul lato Ionio. Sicilia: punti
-// reali usati — Capo Peloro/Milazzo (NE), Cefalù/Capo Gallo/golfo di
-// Castellammare/Capo San Vito (costa nord, con le due insenature), Trapani/
-// Marsala-Capo Lilibeo (punta O), Mazara/Sciacca/Agrigento/Gela (costa
-// sud), Punta Secca/Capo Passero (punta SE), Siracusa/Catania/Taormina
-// (costa Ionica). Le regioni non ancora mappate usano una sagoma "stivale
-// d'Italia" generica come segnaposto, da sostituire con la stessa tecnica
-// quando si aggiunge quella regione.
+// Sagoma stilizzata (semplificata a poligono, non un tracciato di confine
+// dettagliato) ma derivata da coordinate reali di città/valichi di
+// riferimento per ogni regione — non va mai disegnata a mano "a occhio":
+// si prendono punti notevoli con lon/lat reali che tracciano il confine
+// dell'INTERA regione (non solo la costa, anche dove la regione si
+// estende nell'entroterra) con x=(lon-lon0)*111*cos(lat_media),
+// y=(lat0-lat)*111 (km, nord in alto), e si collegano in ordine lungo il
+// perimetro. Ciascuna regione ha il proprio viewBox, dato che la forma
+// decide la proporzione (Puglia stretta e verticale, Sicilia larga e
+// orizzontale, Emilia-Romagna ampia orizzontalmente ma bassa). Puglia:
+// sperone del Gargano (Vieste) in alto, tacco del Salento che si
+// restringe fino a Leuca in fondo, rientranza del golfo di Taranto sul
+// lato Ionio. Sicilia: punti reali usati — Capo Peloro/Milazzo (NE),
+// Cefalù/Capo Gallo/golfo di Castellammare/Capo San Vito (costa nord, con
+// le due insenature), Trapani/Marsala-Capo Lilibeo (punta O), Mazara/
+// Sciacca/Agrigento/Gela (costa sud), Punta Secca/Capo Passero (punta
+// SE), Siracusa/Catania/Taormina (costa Ionica). Emilia-Romagna: confine
+// nord lungo il Po da Piacenza (angolo NO) a Guastalla, Ferrara, fino al
+// Delta del Po presso Goro; costa adriatica da Comacchio a Ravenna,
+// Cervia, Cesenatico, Rimini fino a Cattolica (angolo SE, confine con le
+// Marche); crinale appenninico verso ovest — Montefeltro/San Marino,
+// Bocca Trabaria, Passo dei Mandrioli, Passo della Futa (confine
+// Toscana), Passo della Cisa — fino a Bobbio (angolo O, confine Liguria/
+// Piemonte), poi di nuovo a Piacenza. Le regioni non ancora mappate
+// usano una sagoma "stivale d'Italia" generica come segnaposto, da
+// sostituire con la stessa tecnica (confine dell'intera regione, non
+// solo la costa) quando si aggiunge quella regione.
 const REGION_MAPS = {
   "Puglia": { viewBox: "0 0 100 156", d: "M85,12 L55,4 L40,18 L48,30 L56,50 L52,72 L56,92 L50,112 L52,130 L42,150 L32,135 L26,115 L38,98 L24,82 L30,62 L18,45 L26,28 Z" },
   "Sicilia": { viewBox: "0 0 286 178", d: "M285,1 L248,0 L141,26 L79,4 L41,24 L27,10 L8,28 L0,52 L15,69 L59,84 L98,109 L160,133 L179,158 L240,177 L253,133 L235,86 L253,47 Z" },
+  "Emilia-Romagna": { viewBox: "0 0 267 165", d: "M25,5 L101,20 L178,29 L239,32 L229,52 L230,72 L236,93 L240,100 L253,115 L267,127 L244,139 L229,164 L198,147 L151,108 L48,69 L0,37 Z" },
   "_default": { viewBox: "0 0 100 156", d: "M60,4 C72,4 70,16 78,22 C86,28 84,40 76,46 C82,54 80,66 70,70 C74,80 68,92 58,94 C62,104 56,116 46,116 C48,126 40,136 30,132 C24,140 12,138 10,128 C4,124 6,112 14,108 C8,100 12,88 22,86 C16,76 22,64 32,62 C28,50 36,38 48,38 C44,26 52,14 60,4 Z" },
 };
 function regionMapSVG(name) {
@@ -1494,9 +1505,10 @@ function openDrawer(spot) {
 }
 
 render();
-// Solo Puglia per ora: la Sicilia (già presente nei dati del backend) è
-// tolta temporaneamente dal frontend, ci si lavora più avanti.
-loadSpots().then((spots) => { SPOTS = spots.filter((s) => spotRegion(s) === "Puglia"); render(); });
+// Puglia ed Emilia-Romagna per ora: la Sicilia (già presente nei dati del
+// backend) resta tolta temporaneamente dal frontend, ci si lavora più avanti.
+const VISIBLE_REGIONS = ["Puglia", "Emilia-Romagna"];
+loadSpots().then((spots) => { SPOTS = spots.filter((s) => VISIBLE_REGIONS.includes(spotRegion(s))); render(); });
 
 </script>
 </body>
