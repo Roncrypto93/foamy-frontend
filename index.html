@@ -139,18 +139,19 @@
   .spot-card:hover .spot-card-cta { color: var(--accent); }
 
   /* Banner di apertura sopra la griglia regioni — solo al livello home,
-     nascosto non appena si entra in una regione (vedi render()). Linea di
-     swell stilizzata sullo sfondo (poche onde semplici, non un tracciato
-     elaborato): un motivo decorativo coerente col tema dell'app invece di
-     un gradiente generico, tenuto molto tenue per non competere col testo. */
-  .home-hero { position: relative; padding: 40px 0 30px; overflow: hidden; }
-  .home-hero-swell { position: absolute; left: -5%; right: -5%; bottom: -6px; height: 70px; pointer-events: none; }
-  .home-hero-swell path { fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: .16; }
-  .home-hero-swell path:nth-child(2) { stroke-width: 1; opacity: .1; }
-  .home-hero-title { position: relative; font-family: var(--font-display); font-weight: 900; font-size: 38px; color: var(--ink-bright); margin: 0 0 18px; line-height: 1.1; letter-spacing: -.01em; text-wrap: balance; max-width: 640px; }
+     nascosto non appena si entra in una regione (vedi render()). */
+  .home-hero { padding: 40px 0 4px; }
+  .home-hero-title { font-family: var(--font-display); font-weight: 900; font-size: 38px; color: var(--ink-bright); margin: 0; line-height: 1.1; letter-spacing: -.01em; text-wrap: balance; max-width: 640px; }
   .home-hero-accent { color: var(--accent); }
-  .home-hero-tags { position: relative; display: flex; flex-wrap: wrap; gap: 8px; }
-  .home-hero-tag { font-family: var(--font-data); font-weight: 700; font-size: 11px; letter-spacing: .04em; color: var(--accent-soft); background: var(--accent-wash); border: 1px solid rgba(79,209,197,0.28); padding: 6px 13px; border-radius: 20px; white-space: nowrap; }
+
+  /* Separatore sotto il testo hero: non più una linea di sfondo dietro il
+     testo, ma una striscia a sé — un motivo a piastrelle (SVG <pattern>,
+     si ripete da solo su tutta la larghezza) di icone stilizzate mare/
+     vento (onda, rosa dei venti, raffica), invece di un'immagine unica.
+     Le icone usano var(--accent) come gli altri elementi SVG inline del
+     sito, quindi seguono da sole il cambio tema chiaro/scuro. */
+  .hero-divider { width: 100%; height: 40px; margin: 22px 0 28px; }
+  .hero-divider svg { display: block; width: 100%; height: 100%; }
 
   /* Intestazioni delle sezioni home (regioni / migliori spot) — stesso
      trattamento tipografico per entrambe, per leggerle come un'unica
@@ -476,12 +477,31 @@
 
   <main>
     <section class="home-hero" id="homeHero">
-      <svg class="home-hero-swell" viewBox="0 0 600 70" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M0,45 C50,15 100,15 150,45 C200,75 250,75 300,45 C350,15 400,15 450,45 C500,75 550,75 600,45" />
-        <path d="M0,58 C50,32 100,32 150,58 C200,84 250,84 300,58 C350,32 400,32 450,58 C500,84 550,84 600,58" />
-      </svg>
       <h1 class="home-hero-title">Le previsioni più accurate del Mediterraneo, con webcam integrate. <span class="home-hero-accent">Let's get foamy!</span></h1>
     </section>
+    <div class="hero-divider" id="homeHeroDivider" aria-hidden="true">
+      <svg width="100%" height="40">
+        <defs>
+          <pattern id="heroDividerPattern" width="220" height="40" patternUnits="userSpaceOnUse">
+            <!-- onda -->
+            <path d="M10,24 C15,14 21,14 26,24 C31,34 37,34 42,24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" opacity="0.5" />
+            <!-- rosa dei venti -->
+            <g opacity="0.5">
+              <circle cx="104" cy="20" r="11" fill="none" stroke="var(--accent)" stroke-width="2" />
+              <path d="M104,5 L104,9 M104,31 L104,35 M88,20 L92,20 M116,20 L120,20" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" />
+              <circle cx="104" cy="20" r="1.6" fill="var(--accent)" />
+            </g>
+            <!-- raffica di vento -->
+            <g opacity="0.5" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round">
+              <path d="M155,13 H180 C184,13 184,9 180,9" />
+              <path d="M155,20 H188 C193,20 193,25 188,25" />
+              <path d="M155,27 H172 C175,27 175,30 172,30" />
+            </g>
+          </pattern>
+        </defs>
+        <rect width="100%" height="40" fill="url(#heroDividerPattern)" />
+      </svg>
+    </div>
     <button class="back-to-regions" id="backToRegions" style="display:none">← Tutte le regioni</button>
     <section class="section-head" id="regionsHead">
       <h2 class="section-title">Scegli la tua costa</h2>
@@ -1229,6 +1249,7 @@ async function renderTopSpots() {
 
 function render() {
   const homeHero = document.getElementById("homeHero");
+  const homeHeroDivider = document.getElementById("homeHeroDivider");
   const regionsHead = document.getElementById("regionsHead");
   const regionGrid = document.getElementById("regionGrid");
   const topSpotsHead = document.getElementById("topSpotsHead");
@@ -1244,6 +1265,7 @@ function render() {
     // (riguardano gli spot dentro una regione), solo la scorciatoia ai
     // preferiti globali in alto a destra.
     homeHero.style.display = "block";
+    homeHeroDivider.style.display = "block";
     regionsHead.style.display = "block";
     regionGrid.style.display = "grid";
     topSpotsHead.style.display = "block";
@@ -1271,6 +1293,7 @@ function render() {
   // filtrato), quindi lì si nasconde.
   const isFavView = state.region === FAVORITES_VIEW;
   homeHero.style.display = "none";
+  homeHeroDivider.style.display = "none";
   regionsHead.style.display = "none";
   regionGrid.style.display = "none";
   topSpotsHead.style.display = "none";
