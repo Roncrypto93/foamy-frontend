@@ -122,7 +122,7 @@
   /* Condizione complessiva dello spot (Flat/Bad/Fair/Good/Great/Perfect),
      stesso colore in entrambi i temi: è un dato, non un colore di
      interfaccia — grigio neutro finché la fetch live non risponde. */
-  .rating-bar { width: 4px; min-height: 20px; border-radius: 2px; background: var(--border-strong); flex-shrink: 0; }
+  .rating-bar { width: 4px; height: 20px; align-self: center; border-radius: 2px; background: var(--border-strong); flex-shrink: 0; }
   .spot-card-name { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--ink-bright); line-height: 1.25; }
   .spot-card-badges { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-top: 2px; }
   .webcam-badge { display: inline-flex; color: var(--accent); }
@@ -1035,6 +1035,10 @@ function renderCardLive(card, f) {
     bar.style.background = SURF_RATING_COLORS[level];
     bar.title = level;
   } else if (bar) {
+    // Nessun punteggio noto (spot senza onda, o dato mancante): stesso
+    // rosso di Bad/Flat invece di un grigio neutro — l'assenza di dati
+    // buoni si legge come "non conviene", non come uno stato a parte.
+    bar.style.background = SURF_RATING_COLORS.Bad;
     bar.title = "Condizione non disponibile per questo spot";
   }
 }
@@ -1121,7 +1125,7 @@ function topSpotCard(spot, f) {
   const card = document.createElement("button");
   card.className = "top-spot-card fade-up";
   card.innerHTML = `
-    <span class="top-spot-rating" style="background:${SURF_RATING_COLORS[level] || "rgba(var(--ink-bright-rgb),0.3)"}">${level}</span>
+    <span class="top-spot-rating" style="background:${SURF_RATING_COLORS[level] || SURF_RATING_COLORS.Bad}">${level}</span>
     <span class="top-spot-name">${spot.name}</span>
     <span class="top-spot-region">${spotRegion(spot)}</span>
     <span class="top-spot-stats">
