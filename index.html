@@ -147,8 +147,8 @@
   .home-hero-swell { position: absolute; left: -5%; right: -5%; bottom: -6px; height: 70px; pointer-events: none; }
   .home-hero-swell path { fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: .16; }
   .home-hero-swell path:nth-child(2) { stroke-width: 1; opacity: .1; }
-  .home-hero-title { position: relative; font-family: var(--font-display); font-weight: 900; font-size: 38px; color: var(--ink-bright); margin: 0 0 12px; line-height: 1.1; letter-spacing: -.01em; text-wrap: balance; max-width: 640px; }
-  .home-hero-subtitle { position: relative; font-family: var(--font-display); font-size: 15px; color: var(--ink); margin: 0 0 18px; max-width: 520px; line-height: 1.55; }
+  .home-hero-title { position: relative; font-family: var(--font-display); font-weight: 900; font-size: 38px; color: var(--ink-bright); margin: 0 0 18px; line-height: 1.1; letter-spacing: -.01em; text-wrap: balance; max-width: 640px; }
+  .home-hero-accent { color: var(--accent); }
   .home-hero-tags { position: relative; display: flex; flex-wrap: wrap; gap: 8px; }
   .home-hero-tag { font-family: var(--font-data); font-weight: 700; font-size: 11px; letter-spacing: .04em; color: var(--accent-soft); background: var(--accent-wash); border: 1px solid rgba(79,209,197,0.28); padding: 6px 13px; border-radius: 20px; white-space: nowrap; }
 
@@ -203,7 +203,16 @@
 
   /* ---------- Drawer ---------- */
   .drawer-overlay { position: fixed; inset: 0; z-index: 50; }
-  .drawer-panel { position: relative; width: 100%; height: 100%; background: var(--bg); overflow-y: auto; }
+  /* Scroll verticale del drawer funzionante ma senza barra visibile a
+     schermo (richiesto esplicitamente): nessuna reintroduzione dei
+     problemi di gutter/allineamento visti sul forecast, perché qui non
+     c'è nessun contenuto figlio da compensare — è la barra dell'intero
+     pannello, non di una tabella a colonne. */
+  .drawer-panel {
+    position: relative; width: 100%; height: 100%; background: var(--bg); overflow-y: auto;
+    scrollbar-width: none; -ms-overflow-style: none;
+  }
+  .drawer-panel::-webkit-scrollbar { display: none; }
   .drawer-head { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 22px; display: flex; align-items: flex-start; justify-content: space-between; position: sticky; top: 0; z-index: 2; }
   .drawer-head-inner { max-width: 1400px; margin: 0 auto; width: 100%; display: flex; align-items: flex-start; justify-content: space-between; }
   .drawer-coast { font-family: var(--font-data); font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--accent); margin: 0 0 4px; }
@@ -274,14 +283,15 @@
      griglia dati (chart/windChart, step di 3 ore, POINTS_PER_DAY per
      giorno), ma un'unica tabella con intestazione di gruppo fissa in alto
      invece di due grafici a scorrimento orizzontale. */
+  /* Barra di scroll nascosta del tutto (richiesto esplicitamente, dopo
+     un primo passaggio in cui era stata solo resa più sottile/tenue) —
+     lo scroll verticale resta pienamente funzionante (rotellina, touch,
+     trackpad), semplicemente senza indicatore visivo. */
   .fc-scrollbox {
-    max-height: 62vh; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
+    max-height: 62vh; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none;
     border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface);
   }
-  .fc-scrollbox::-webkit-scrollbar { width: 4px; }
-  .fc-scrollbox::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
-  .fc-scrollbox::-webkit-scrollbar-track { background: transparent; }
+  .fc-scrollbox::-webkit-scrollbar { display: none; }
   /* Prima colonna (ora + label giorno) a 56px: "Oggi" ci stava, ma
      "Domani" (bold, maiuscolo) no — spillava fuori dalla cella e finiva
      sopra la scritta "Swell" della colonna accanto (bug presente anche su
@@ -302,16 +312,6 @@
     display: grid; grid-template-columns: 68px 1fr 1fr; align-items: center; gap: 0;
     border-bottom: 1px solid var(--border); min-width: 460px; position: relative;
   }
-  /* Lo sfondo dell'intestazione (surface-2) si fermava prima del bordo
-     vero della tabella, lasciando visibile lo sfondo (surface) della
-     scrollbox nello spazio riservato alla scrollbar verticale — un
-     "buco" di colore diverso proprio dove finiva "Vento". Margine destro
-     negativo (compensa i 9px della scrollbar) su riga e intestazione
-     insieme, così restano allineate in colonna e lo sfondo arriva fino al
-     bordo reale; overflow-x passato da auto a hidden perché non serve più
-     scroll orizzontale (vedi fix precedente) e clippa in sicurezza
-     un'eventuale sbordatura di 1-2px sui browser con scrollbar diversa. */
-  .fc-row, .fc-day { margin-right: -10px; }
   .fc-row::before { content: ""; position: absolute; left: 0; top: 5px; bottom: 5px; width: 4px; border-radius: 2px; background: var(--stripe); }
   .fc-row:last-child { border-bottom: none; }
   .fc-row:hover { background: var(--accent-wash); }
@@ -480,8 +480,7 @@
         <path d="M0,45 C50,15 100,15 150,45 C200,75 250,75 300,45 C350,15 400,15 450,45 C500,75 550,75 600,45" />
         <path d="M0,58 C50,32 100,32 150,58 C200,84 250,84 300,58 C350,32 400,32 450,58 C500,84 550,84 600,58" />
       </svg>
-      <h1 class="home-hero-title">Le previsioni più accurate del Mediterraneo, con webcam integrate.</h1>
-      <p class="home-hero-subtitle">Let's get foamy!</p>
+      <h1 class="home-hero-title">Le previsioni più accurate del Mediterraneo, con webcam integrate. <span class="home-hero-accent">Let's get foamy!</span></h1>
     </section>
     <button class="back-to-regions" id="backToRegions" style="display:none">← Tutte le regioni</button>
     <section class="section-head" id="regionsHead">
