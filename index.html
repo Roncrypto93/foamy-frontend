@@ -315,9 +315,37 @@
   .fc-gust-line b { color: var(--ink-bright); font-weight: 700; }
   .fc-dir-block { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
   .fc-dir-cardinal { font-size: 11px; font-weight: 800; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .04em; }
+  /* Etichetta "Swell"/"Vento" ripetuta per riga: inutile su desktop (c'è
+     già l'intestazione di colonna in .fc-day-col), serve solo nel layout
+     impilato sotto i 640px, dove le due colonne diventano due blocchi in
+     verticale e perdono il riferimento visivo della colonna. */
+  .fc-panel-lbl { display: none; }
   @media (max-width: 640px) {
-    .fc-row, .fc-day { grid-template-columns: 46px 1fr 1fr; }
-    .fc-panel { padding: 10px 8px; }
+    /* Sotto i 640px la tabella a 3 colonne (ora, swell, vento) non ci sta
+       in orizzontale senza schiacciare il pannello vento a ~150px — prima
+       di questa modifica restava largo 460px fisso e lo scroll orizzontale
+       necessario per vederlo non era scoperto dall'utente (verificato via
+       misura reale: contenuto tagliato a destra del bordo dello schermo).
+       Soluzione: impilare ora → swell → vento in verticale, riga per riga,
+       usando tutta la larghezza dello schermo invece di dividerla in tre. */
+    .fc-day { grid-template-columns: 1fr; padding: 8px 0; }
+    .fc-day-col { display: none; }
+    .fc-row {
+      display: flex; flex-direction: column; min-width: 0; gap: 0;
+    }
+    .fc-hour {
+      flex-direction: row; align-items: center; justify-content: space-between;
+      padding: 10px 14px; gap: 8px;
+    }
+    .fc-panel {
+      border-left: none; border-top: 1px solid var(--border); padding: 10px 14px;
+    }
+    .fc-panel-lbl {
+      display: block; font-size: 9.5px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--ink-dim); margin-bottom: 8px;
+    }
+    .fc-microlbl { font-size: 9.5px; }
+    .fc-dir-cardinal { font-size: 12px; }
   }
   .legend-swatch--gradient {
     width: 46px; height: 6px; border-radius: 2px;
@@ -348,6 +376,16 @@
     .brand-mark { width: 28px; height: 28px; }
     .brand-name { font-size: 18px; }
     .brand-tag { font-size: 9px; }
+
+    /* Target di tocco: sotto ~40px sono difficili da colpire col dito
+       (misurato: pulsante tema 32px, stella preferiti ~26px, chip
+       "Preferiti" alta 25px). Icona/testo restano alla stessa dimensione
+       visiva, cresce solo l'area cliccabile (padding), tranne il pulsante
+       tema dove serve ingrandire anche il cerchio stesso. */
+    .theme-toggle { width: 40px; height: 40px; }
+    .spot-card-fav { padding: 8px; margin: -8px; }
+    .chip-btn { padding: 9px 12px; }
+    .search-input { padding: 10px 12px; }
 
     .grid, .region-grid { margin-top: 14px; gap: 10px; }
     .spot-card { padding: 12px 14px; }
@@ -1373,6 +1411,7 @@ function renderForecastTable(chart, windChart) {
           ${level ? `<div class="fc-rating-tag" style="color:${stripe}">${level}</div>` : ""}
         </div>
         <div class="fc-panel">
+          <div class="fc-panel-lbl">Swell</div>
           <div class="fc-swell-split">
             <div>
               <div class="fc-num-row">
@@ -1394,6 +1433,7 @@ function renderForecastTable(chart, windChart) {
           </div>
         </div>
         <div class="fc-panel">
+          <div class="fc-panel-lbl">Vento</div>
           <div class="fc-wind-split">
             <div class="fc-wind-main">
               <div class="fc-big tabular">${w.windSpeedKn != null ? Math.round(w.windSpeedKn) : "—"}<span class="fc-unit">kn</span></div>
