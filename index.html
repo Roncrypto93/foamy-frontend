@@ -279,6 +279,39 @@
     .swell-block { padding-left: 0; border-left: none; padding-top: 16px; border-top: 1px solid var(--border); }
   }
 
+  /* ---------- Riassunto settimana (solo desktop) ----------
+     Vista rapida sopra la tabella oraria dettagliata: grafico vento (a
+     colonne dense, come prima della tabella) e sotto lo stato del mare a
+     parole per giorno + striscia di barre sottili colorate dello score.
+     Nascosto su mobile: a 34px per colonna x 56 punti non ci sta in modo
+     leggibile su uno schermo stretto, la tabella sotto copre già lo stesso
+     dato in un formato che funziona anche lì. */
+  @media (max-width: 640px) {
+    .week-summary-panel { display: none; }
+  }
+  .ws-scroll {
+    overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch; touch-action: pan-x; overscroll-behavior-x: contain;
+  }
+  .ws-scroll::-webkit-scrollbar { display: none; }
+  /* Sticky a sinistra: senza, "Vento"/"Mare" scorrono via col resto del
+     contenuto quando si scorre la settimana in orizzontale, perdendo il
+     riferimento di quale grafico si sta guardando. */
+  .ws-sub-label {
+    font-family: var(--font-data); font-weight: 700; font-size: 11px; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--ink-dim); margin: 0 0 8px;
+    position: sticky; left: 0; width: fit-content; background: var(--surface); padding-right: 10px;
+  }
+  .ws-sea-days { display: flex; }
+  .ws-sea-day {
+    font-family: var(--font-data); font-weight: 600; font-size: 11.5px; color: var(--ink-bright);
+    text-align: center; padding: 6px 4px; box-sizing: border-box; border-right: 1px solid var(--border);
+  }
+  .ws-sea-day:last-child { border-right: none; }
+  .ws-score-bars { display: flex; margin-top: 6px; }
+  .ws-score-bar { width: 34px; flex-shrink: 0; box-sizing: border-box; padding: 0 1.5px; }
+  .ws-score-bar span { display: block; width: 100%; height: 6px; border-radius: 2px; }
+
   /* ---------- Forecast: tabella oraria Swell + Vento (scroll verticale) ----------
      Sostituisce i precedenti grafici SVG separati onda/vento: stessa
      griglia dati (chart/windChart, step di 3 ore, POINTS_PER_DAY per
@@ -1410,6 +1443,185 @@ function tideArrowSVG(rising) {
 // disallinearsi.
 const POINTS_PER_DAY = 8;
 
+// ---------- Riassunto settimana (solo desktop, sopra la tabella Forecast) ----------
+// Vento: il vecchio grafico SVG a colonne dense (tabella colorata stile
+// Windguru + freccia direzione), rimesso in uso qui pari pari — era stato
+// tolto insieme al grafico onda quando la tabella oraria l'ha sostituito
+// (commit 941a175), ma per questo riassunto "a colpo d'occhio" è meglio
+// del testo riga per riga della tabella sotto. Mare: non il vecchio
+// grafico a barre (mai richiesto di riportarlo), ma una versione nuova e
+// più semplice — stato del mare a parole per ogni giorno, con sotto una
+// striscia di barre sottili colorate dello score, un segmento per ogni
+// punto a 3 ore, stessa griglia di colonne del grafico vento sopra così
+// scorrono insieme in un unico contenitore.
+function svgElNS(tag, attrs) {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+function chartDisplayScale() { return window.innerWidth <= 640 ? 0.72 : 1; }
+const WIND_COLOR_STOPS = [
+  { kn: 0, rgb: [255, 255, 255] },
+  { kn: 5, rgb: [255, 255, 255] },
+  { kn: 8, rgb: [79, 209, 197] },
+  { kn: 14, rgb: [134, 224, 138] },
+  { kn: 20, rgb: [242, 217, 78] },
+  { kn: 27, rgb: [242, 153, 78] },
+  { kn: 35, rgb: [224, 82, 79] },
+  { kn: 45, rgb: [176, 106, 224] },
+];
+function lerpRgb(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; }
+function rgbCss(rgb) { return `rgb(${Math.round(rgb[0])},${Math.round(rgb[1])},${Math.round(rgb[2])})`; }
+function windColor(kn) {
+  const s = WIND_COLOR_STOPS;
+  if (kn <= s[0].kn) return rgbCss(s[0].rgb);
+  for (let i = 0; i < s.length - 1; i++) {
+    if (kn <= s[i + 1].kn) {
+      const t = (kn - s[i].kn) / (s[i + 1].kn - s[i].kn);
+      return rgbCss(lerpRgb(s[i].rgb, s[i + 1].rgb, t));
+    }
+  }
+  return rgbCss(s[s.length - 1].rgb);
+}
+
+const WIND2_COL_W = 34;
+const WIND2_DAY_H = 18;
+const WIND2_HOUR_H = 16;
+const WIND2_TABLE_TOP = WIND2_DAY_H + WIND2_HOUR_H;
+const WIND2_CELL_H = 24;
+const WIND2_GCELL_H = 22;
+const WIND2_TABLE_BOTTOM = WIND2_TABLE_TOP + WIND2_CELL_H + WIND2_GCELL_H;
+const WIND2_DIR_ZONE_TOP = WIND2_TABLE_BOTTOM + 7;
+const WIND2_DIR_ZONE_H = 32;
+const WIND2_CHART_H = WIND2_DIR_ZONE_TOP + WIND2_DIR_ZONE_H + 3;
+const WIND2_INK_ON_COLOR = "#0b0f19";
+const WIND2_CELL_FONT = { "font-family": "Archivo, sans-serif", "font-weight": 700, "font-size": 12.5 };
+const WIND2_CELL_STROKE = { stroke: "rgba(11,15,25,0.4)", "stroke-width": 1 };
+function renderWindChart(svgEl_, windChart) {
+  svgEl_.innerHTML = "";
+  const n = windChart.length;
+  if (!n) {
+    svgEl_.removeAttribute("style");
+    svgEl_.setAttribute("viewBox", `0 0 640 ${WIND2_CHART_H}`);
+    const t = svgElNS("text", { x: 320, y: WIND2_CHART_H / 2, "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-size": 12, fill: "var(--ink-dim)" });
+    t.textContent = "Dati vento non disponibili";
+    svgEl_.appendChild(t);
+    return;
+  }
+
+  const chartW = n * WIND2_COL_W;
+  svgEl_.setAttribute("viewBox", `0 0 ${chartW} ${WIND2_CHART_H}`);
+  svgEl_.style.width = (chartW * chartDisplayScale()) + "px";
+  svgEl_.style.height = "auto";
+  svgEl_.style.display = "block";
+
+  const speeds = windChart.map((p) => p.windSpeedKn ?? 0);
+  const gusts = windChart.map((p) => p.windGustsKn ?? 0);
+  const x = (i) => i * WIND2_COL_W + WIND2_COL_W / 2;
+  const totalDays = Math.max(1, Math.round(n / POINTS_PER_DAY));
+
+  for (let i = 0; i < n; i++) {
+    const cx = x(i);
+    const colX = i * WIND2_COL_W;
+
+    const time = new Date(windChart[i].time);
+    const hourLbl = svgElNS("text", { x: cx, y: WIND2_DAY_H + WIND2_HOUR_H - 4, "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-size": 10.5, fill: "var(--ink-dim)" });
+    hourLbl.textContent = String(time.getHours()).padStart(2, "0");
+    svgEl_.appendChild(hourLbl);
+
+    svgEl_.appendChild(svgElNS("rect", {
+      x: colX, y: WIND2_TABLE_TOP, width: WIND2_COL_W, height: WIND2_CELL_H,
+      fill: windColor(speeds[i]), ...WIND2_CELL_STROKE,
+    }));
+    const speedLbl = svgElNS("text", { x: cx, y: WIND2_TABLE_TOP + WIND2_CELL_H / 2 + 4.4, "text-anchor": "middle", ...WIND2_CELL_FONT, fill: WIND2_INK_ON_COLOR });
+    speedLbl.textContent = speeds[i] != null ? Math.round(speeds[i]) : "—";
+    svgEl_.appendChild(speedLbl);
+
+    const gy = WIND2_TABLE_TOP + WIND2_CELL_H;
+    svgEl_.appendChild(svgElNS("rect", {
+      x: colX, y: gy, width: WIND2_COL_W, height: WIND2_GCELL_H,
+      fill: windColor(gusts[i]), ...WIND2_CELL_STROKE,
+    }));
+    const gustLbl = svgElNS("text", { x: cx, y: gy + WIND2_GCELL_H / 2 + 4.4, "text-anchor": "middle", ...WIND2_CELL_FONT, fill: WIND2_INK_ON_COLOR });
+    gustLbl.textContent = gusts[i] != null ? Math.round(gusts[i]) : "—";
+    svgEl_.appendChild(gustLbl);
+
+    const dir = windChart[i].windDirectionDeg;
+    if (dir != null) {
+      const g = svgElNS("g", { transform: `translate(${cx.toFixed(1)},${WIND2_DIR_ZONE_TOP + 9}) rotate(${dir + 180})` });
+      g.appendChild(svgElNS("path", { d: "M0,-6 L-4,5 L0,2 L4,5 Z", fill: "var(--ink-bright)" }));
+      svgEl_.appendChild(g);
+
+      const dirLbl = svgElNS("text", { x: cx, y: WIND2_DIR_ZONE_TOP + 26, "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-weight": 600, "font-size": 9, fill: "var(--accent-soft)" });
+      dirLbl.textContent = cardinal16(dir);
+      svgEl_.appendChild(dirLbl);
+    }
+  }
+
+  for (let d = 0; d < totalDays; d++) {
+    const idx = Math.min(d * POINTS_PER_DAY + Math.floor(POINTS_PER_DAY / 2), n - 1);
+    const dateStr = windChart[idx].time.slice(0, 10);
+    const cx = (d * POINTS_PER_DAY + POINTS_PER_DAY / 2) * WIND2_COL_W;
+    const dayLbl = svgElNS("text", { x: cx, y: WIND2_DAY_H - 5, "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-weight": 700, "font-size": 12, fill: "var(--accent-soft)" });
+    dayLbl.textContent = dayLabel(dateStr, d);
+    svgEl_.appendChild(dayLbl);
+  }
+}
+
+function weekSummaryHTML() {
+  return `
+    <section class="panel week-summary-panel" id="weekSummaryPanel">
+      <p class="panel-label" style="margin-bottom:14px">Riassunto settimana</p>
+      <div class="ws-scroll" id="wsScroll">
+        <p class="ws-sub-label">Vento</p>
+        <svg id="wsWindChart"></svg>
+        <p class="ws-sub-label" style="margin-top:12px">Mare</p>
+        <div class="ws-sea-days" id="wsSeaDays"></div>
+        <div class="ws-score-bars" id="wsScoreBars"></div>
+      </div>
+    </section>
+  `;
+}
+
+function renderWeekSummary(chart, windChart) {
+  const svgEl = document.getElementById("wsWindChart");
+  renderWindChart(svgEl, windChart);
+
+  const seaDaysEl = document.getElementById("wsSeaDays");
+  const barsEl = document.getElementById("wsScoreBars");
+  const n = Math.min(chart.length, windChart.length);
+  seaDaysEl.innerHTML = "";
+  barsEl.innerHTML = "";
+  if (!n) return;
+  const totalW = n * WIND2_COL_W;
+  seaDaysEl.style.width = totalW + "px";
+  barsEl.style.width = totalW + "px";
+
+  const totalDays = Math.ceil(n / POINTS_PER_DAY);
+  for (let d = 0; d < totalDays; d++) {
+    const dayStart = d * POINTS_PER_DAY;
+    const dayEnd = Math.min(dayStart + POINTS_PER_DAY, n);
+    const middayIdx = Math.min(dayStart + Math.floor(POINTS_PER_DAY / 2), dayEnd - 1);
+    const [, , shortLabel] = classifySeaState(chart[middayIdx].waveHeightM);
+    const dayDiv = document.createElement("div");
+    dayDiv.className = "ws-sea-day";
+    dayDiv.style.width = ((dayEnd - dayStart) * WIND2_COL_W) + "px";
+    dayDiv.textContent = shortLabel;
+    seaDaysEl.appendChild(dayDiv);
+  }
+
+  for (let i = 0; i < n; i++) {
+    const level = chart[i].surfRating?.rating;
+    const color = level && SURF_RATING_COLORS[level] ? SURF_RATING_COLORS[level] : "rgba(var(--ink-bright-rgb),0.25)";
+    const slot = document.createElement("div");
+    slot.className = "ws-score-bar";
+    const bar = document.createElement("span");
+    bar.style.background = color;
+    slot.appendChild(bar);
+    barsEl.appendChild(slot);
+  }
+}
+
 // ---------- Forecast: tabella oraria Swell + Vento (scroll verticale) ----------
 // Sostituisce i precedenti grafici SVG separati onda/vento (scroll
 // orizzontale): stessa griglia dati (chart/windChart, step di 3 ore,
@@ -1585,7 +1797,8 @@ function openDrawer(spot) {
       fetchWeeklyData(spot)
         .then(({ chart, windChart }) => {
           if (token !== openToken) return;
-          document.getElementById("threeDaySection").innerHTML = forecastSectionHTML();
+          document.getElementById("threeDaySection").innerHTML = weekSummaryHTML() + forecastSectionHTML();
+          renderWeekSummary(chart || [], windChart || []);
           renderForecastTable(chart || [], windChart || []);
         })
         .catch(() => {
