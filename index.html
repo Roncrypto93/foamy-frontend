@@ -275,7 +275,7 @@
      giorno), ma un'unica tabella con intestazione di gruppo fissa in alto
      invece di due grafici a scorrimento orizzontale. */
   .fc-scrollbox {
-    max-height: 62vh; overflow-y: auto; overflow-x: auto;
+    max-height: 62vh; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin;
     border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface);
   }
   .fc-scrollbox::-webkit-scrollbar { width: 9px; }
@@ -301,6 +301,16 @@
     display: grid; grid-template-columns: 68px 1fr 1fr; align-items: center; gap: 0;
     border-bottom: 1px solid var(--border); min-width: 460px; position: relative;
   }
+  /* Lo sfondo dell'intestazione (surface-2) si fermava prima del bordo
+     vero della tabella, lasciando visibile lo sfondo (surface) della
+     scrollbox nello spazio riservato alla scrollbar verticale — un
+     "buco" di colore diverso proprio dove finiva "Vento". Margine destro
+     negativo (compensa i 9px della scrollbar) su riga e intestazione
+     insieme, così restano allineate in colonna e lo sfondo arriva fino al
+     bordo reale; overflow-x passato da auto a hidden perché non serve più
+     scroll orizzontale (vedi fix precedente) e clippa in sicurezza
+     un'eventuale sbordatura di 1-2px sui browser con scrollbar diversa. */
+  .fc-row, .fc-day { margin-right: -10px; }
   .fc-row::before { content: ""; position: absolute; left: 0; top: 5px; bottom: 5px; width: 4px; border-radius: 2px; background: var(--stripe); }
   .fc-row:last-child { border-bottom: none; }
   .fc-row:hover { background: var(--accent-wash); }
