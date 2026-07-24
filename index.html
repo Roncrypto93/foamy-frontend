@@ -305,7 +305,8 @@
   .ws-sea-days { display: flex; }
   .ws-sea-day {
     font-family: var(--font-data); font-weight: 600; font-size: 11.5px; color: var(--ink-bright);
-    text-align: center; padding: 6px 4px; box-sizing: border-box; border-right: 1px solid var(--border);
+    text-align: center; padding: 6px 4px 8px; box-sizing: border-box; border-right: 1px solid var(--border);
+    border-bottom: 3px solid var(--border-strong);
   }
   .ws-sea-day:last-child { border-right: none; }
   .ws-score-bars { display: flex; margin-top: 6px; }
@@ -1571,7 +1572,7 @@ function renderWindChart(svgEl_, windChart) {
 function weekSummaryHTML() {
   return `
     <section class="panel week-summary-panel" id="weekSummaryPanel">
-      <p class="panel-label" style="margin-bottom:14px">Riassunto settimana</p>
+      <p class="panel-label" style="margin-bottom:14px">Forecast Vento - 7 giorni</p>
       <div class="ws-scroll" id="wsScroll">
         <p class="ws-sub-label">Vento</p>
         <svg id="wsWindChart"></svg>
@@ -1603,9 +1604,12 @@ function renderWeekSummary(chart, windChart) {
     const dayEnd = Math.min(dayStart + POINTS_PER_DAY, n);
     const middayIdx = Math.min(dayStart + Math.floor(POINTS_PER_DAY / 2), dayEnd - 1);
     const [, , shortLabel] = classifySeaState(chart[middayIdx].waveHeightM);
+    const dayLevel = chart[middayIdx].surfRating?.rating;
+    const dayColor = dayLevel && SURF_RATING_COLORS[dayLevel] ? SURF_RATING_COLORS[dayLevel] : "rgba(var(--ink-bright-rgb),0.25)";
     const dayDiv = document.createElement("div");
     dayDiv.className = "ws-sea-day";
     dayDiv.style.width = ((dayEnd - dayStart) * WIND2_COL_W) + "px";
+    dayDiv.style.borderBottomColor = dayColor;
     dayDiv.textContent = shortLabel;
     seaDaysEl.appendChild(dayDiv);
   }
@@ -1632,7 +1636,7 @@ function renderWeekSummary(chart, windChart) {
 function forecastSectionHTML() {
   return `
     <section class="panel panel-forecast">
-      <p class="panel-label" style="margin-bottom:12px">Forecast — 7 giorni</p>
+      <p class="panel-label" style="margin-bottom:12px">Forecast Mare - 7 giorni</p>
       <div class="fc-scrollbox">
         <div class="fc-list" id="fcList"></div>
       </div>
@@ -1692,7 +1696,7 @@ function renderForecastTable(chart, windChart) {
               <div class="fc-meta">${waveDir != null ? `<span style="color:var(--accent-soft)">${directionArrowSVG(waveDir + 180, 12)}</span>` : ""} ${waveDir != null ? cardinal16(waveDir) : "—"}</div>
             </div>
             <div class="fc-energy">
-              <div class="fc-energy-toplbl">Mare</div>
+              <div class="fc-energy-toplbl">Energia</div>
               <div class="fc-energy-val tabular">${energy}</div>
               <div class="fc-energy-lbl">kJ</div>
             </div>
