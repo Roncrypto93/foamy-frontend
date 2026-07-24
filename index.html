@@ -138,12 +138,26 @@
   .spot-card-cta { font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); }
   .spot-card:hover .spot-card-cta { color: var(--accent); }
 
-  /* Testo di apertura sopra la griglia regioni — solo al livello home,
-     nascosto non appena si entra in una regione (vedi render()). */
-  .home-hero { padding: 28px 0 6px; }
-  .home-hero-title { font-family: var(--font-display); font-weight: 900; font-size: 32px; color: var(--ink-bright); margin: 0 0 10px; line-height: 1.15; }
-  .home-hero-subtitle { font-family: var(--font-display); font-size: 15px; color: var(--ink); margin: 0 0 8px; max-width: 560px; line-height: 1.5; }
-  .home-hero-tagline { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--accent); margin: 0; }
+  /* Banner di apertura sopra la griglia regioni — solo al livello home,
+     nascosto non appena si entra in una regione (vedi render()). Linea di
+     swell stilizzata sullo sfondo (poche onde semplici, non un tracciato
+     elaborato): un motivo decorativo coerente col tema dell'app invece di
+     un gradiente generico, tenuto molto tenue per non competere col testo. */
+  .home-hero { position: relative; padding: 40px 0 30px; overflow: hidden; }
+  .home-hero-swell { position: absolute; left: -5%; right: -5%; bottom: -6px; height: 70px; pointer-events: none; }
+  .home-hero-swell path { fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: .16; }
+  .home-hero-swell path:nth-child(2) { stroke-width: 1; opacity: .1; }
+  .home-hero-title { position: relative; font-family: var(--font-display); font-weight: 900; font-size: 38px; color: var(--ink-bright); margin: 0 0 12px; line-height: 1.1; letter-spacing: -.01em; text-wrap: balance; max-width: 640px; }
+  .home-hero-subtitle { position: relative; font-family: var(--font-display); font-size: 15px; color: var(--ink); margin: 0 0 18px; max-width: 520px; line-height: 1.55; }
+  .home-hero-tags { position: relative; display: flex; flex-wrap: wrap; gap: 8px; }
+  .home-hero-tag { font-family: var(--font-data); font-weight: 700; font-size: 11px; letter-spacing: .04em; color: var(--accent-soft); background: var(--accent-wash); border: 1px solid rgba(79,209,197,0.28); padding: 6px 13px; border-radius: 20px; white-space: nowrap; }
+
+  /* Intestazioni delle sezioni home (regioni / migliori spot) — stesso
+     trattamento tipografico per entrambe, per leggerle come un'unica
+     famiglia di banner invece di pezzi scollegati. */
+  .section-head { margin: 34px 0 2px; }
+  .section-title { font-family: var(--font-display); font-weight: 800; font-size: 20px; color: var(--ink-bright); margin: 0 0 4px; letter-spacing: -.005em; }
+  .section-sub { font-family: var(--font-data); font-size: 12.5px; color: var(--ink-dim); margin: 0; }
 
   /* Home a due livelli: prima le regioni (oggi solo Puglia, ma pensata per
      più regioni italiane in futuro), poi — cliccando una regione — la
@@ -158,6 +172,24 @@
   .region-count { font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .08em; }
   .back-to-regions { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-data); font-size: 11px; font-weight: 600; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .06em; background: transparent; border: none; cursor: pointer; padding: 0; margin: 0 0 14px; }
   .back-to-regions:hover { color: var(--accent); }
+
+  /* Banner "migliori spot del momento": stesse condizioni live già
+     mostrate sulle spot-card (fetchCurrentConditions, SURF_RATING_COLORS),
+     solo ordinate per punteggio invece che alfabeticamente e presentate
+     come poche card più ricche invece che come griglia intera. */
+  .top-spots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-top: 16px; }
+  .top-spot-card {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 10px; text-align: left;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px;
+    cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .top-spot-card:hover { border-color: var(--accent); background: var(--surface-2); }
+  .top-spot-rating { font-family: var(--font-data); font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #0b0f19; padding: 3px 10px; border-radius: 20px; }
+  .top-spot-name { font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--ink-bright); line-height: 1.25; }
+  .top-spot-region { font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .07em; margin-top: -6px; }
+  .top-spot-stats { display: flex; gap: 16px; font-family: var(--font-data); font-size: 12.5px; color: var(--ink-dim); }
+  .top-spot-stats b { color: var(--ink-bright); font-weight: 700; }
+  .top-spot-skeleton { height: 120px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); }
 
   #emptyState { text-align: center; padding: 60px 0; }
   #emptyState p:first-child { font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--ink); margin: 0 0 6px; }
@@ -373,12 +405,29 @@
 
   <main>
     <section class="home-hero" id="homeHero">
+      <svg class="home-hero-swell" viewBox="0 0 600 70" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,45 C50,15 100,15 150,45 C200,75 250,75 300,45 C350,15 400,15 450,45 C500,75 550,75 600,45" />
+        <path d="M0,58 C50,32 100,32 150,58 C200,84 250,84 300,58 C350,32 400,32 450,58 C500,84 550,84 600,58" />
+      </svg>
       <h1 class="home-hero-title">Previsioni vere, un solo posto.</h1>
       <p class="home-hero-subtitle">Forecast di mare e vento accurati per il Mediterraneo, con webcam disponibili sui principali spot.</p>
-      <p class="home-hero-tagline">Let's get foamy.</p>
+      <div class="home-hero-tags">
+        <span class="home-hero-tag">Dati veri, non stime</span>
+        <span class="home-hero-tag">Mare e vento, un'unica vista</span>
+        <span class="home-hero-tag">Let's get foamy</span>
+      </div>
     </section>
     <button class="back-to-regions" id="backToRegions" style="display:none">← Tutte le regioni</button>
+    <section class="section-head" id="regionsHead">
+      <h2 class="section-title">Scegli la tua costa</h2>
+      <p class="section-sub">Spot verificati, con webcam live dove disponibile.</p>
+    </section>
     <div id="regionGrid" class="region-grid"></div>
+    <section class="section-head" id="topSpotsHead">
+      <h2 class="section-title">I migliori spot del momento</h2>
+      <p class="section-sub">In base alle condizioni live di adesso, in tutte le regioni.</p>
+    </section>
+    <div id="topSpotsGrid" class="top-spots-grid"></div>
     <div id="grid" class="grid"></div>
     <div id="emptyState" style="display:none">
       <p id="emptyTitle">Nessuno spot per questi filtri</p>
@@ -1034,9 +1083,71 @@ function spotCard(spot) {
   return card;
 }
 
+// Banner "migliori spot del momento": stessa fetchCurrentConditions già
+// usata dalle spot-card (e la stessa cardLiveCache, per non rifare le
+// chiamate una seconda volta quando l'utente entra poi in una regione),
+// solo su tutti gli spot visibili insieme invece che uno alla volta, per
+// poterli ordinare per punteggio (SURF_RATING_LEVELS) invece che per nome.
+// Salta i FALLBACK_SPOTS (lista minima usata solo prima che /api/spots
+// risponda): aspetta la lista vera per non calcolare una classifica su 3
+// spot a caso e poi doverla rifare da capo un attimo dopo.
+const TOP_SPOTS_COUNT = 3;
+async function computeTopSpots() {
+  if (SPOTS === FALLBACK_SPOTS) return null;
+  const results = await Promise.allSettled(SPOTS.map(async (spot) => {
+    if (cardLiveCache.has(spot.id)) return { spot, f: cardLiveCache.get(spot.id) };
+    try {
+      const f = await fetchCurrentConditions(spot);
+      cardLiveCache.set(spot.id, f);
+      return { spot, f };
+    } catch {
+      cardLiveCache.set(spot.id, null);
+      return { spot, f: null };
+    }
+  }));
+  return results
+    .map((r) => (r.status === "fulfilled" ? r.value : null))
+    .filter((x) => x && x.f && x.f.surfRating?.rating)
+    .sort((a, b) => {
+      const diff = SURF_RATING_LEVELS.indexOf(b.f.surfRating.rating) - SURF_RATING_LEVELS.indexOf(a.f.surfRating.rating);
+      return diff !== 0 ? diff : (b.f.height ?? 0) - (a.f.height ?? 0);
+    })
+    .slice(0, TOP_SPOTS_COUNT);
+}
+
+function topSpotCard(spot, f) {
+  const level = f.surfRating.rating;
+  const card = document.createElement("button");
+  card.className = "top-spot-card fade-up";
+  card.innerHTML = `
+    <span class="top-spot-rating" style="background:${SURF_RATING_COLORS[level] || "rgba(var(--ink-bright-rgb),0.3)"}">${level}</span>
+    <span class="top-spot-name">${spot.name}</span>
+    <span class="top-spot-region">${spotRegion(spot)}</span>
+    <span class="top-spot-stats"><b>${f.height ?? "—"}</b>&nbsp;m &nbsp; <b>${f.windSpeed ?? "—"}</b>&nbsp;kn</span>
+  `;
+  card.onclick = () => openDrawer(spot);
+  return card;
+}
+
+async function renderTopSpots() {
+  const wrap = document.getElementById("topSpotsGrid");
+  if (!wrap || state.region) return;
+  wrap.innerHTML = `<div class="top-spot-skeleton"></div><div class="top-spot-skeleton"></div><div class="top-spot-skeleton"></div>`;
+  const ranked = await computeTopSpots();
+  if (state.region) return; // l'utente è già entrato in una regione mentre si aspettava la risposta
+  if (!ranked) return; // fallback list ancora attiva, in attesa di loadSpots()
+  document.getElementById("topSpotsHead").style.display = ranked.length ? "block" : "none";
+  wrap.innerHTML = "";
+  wrap.style.display = ranked.length ? "grid" : "none";
+  ranked.forEach(({ spot, f }) => wrap.appendChild(topSpotCard(spot, f)));
+}
+
 function render() {
   const homeHero = document.getElementById("homeHero");
+  const regionsHead = document.getElementById("regionsHead");
   const regionGrid = document.getElementById("regionGrid");
+  const topSpotsHead = document.getElementById("topSpotsHead");
+  const topSpotsGrid = document.getElementById("topSpotsGrid");
   const grid = document.getElementById("grid");
   const empty = document.getElementById("emptyState");
   const filtersBar = document.getElementById("filtersBar");
@@ -1048,7 +1159,10 @@ function render() {
     // (riguardano gli spot dentro una regione), solo la scorciatoia ai
     // preferiti globali in alto a destra.
     homeHero.style.display = "block";
+    regionsHead.style.display = "block";
     regionGrid.style.display = "grid";
+    topSpotsHead.style.display = "block";
+    topSpotsGrid.style.display = "grid";
     grid.style.display = "none";
     empty.style.display = "none";
     filtersBar.style.display = "none";
@@ -1060,6 +1174,7 @@ function render() {
     [...counts.entries()]
       .sort((a, b) => a[0].localeCompare(b[0], "it"))
       .forEach(([name, count]) => regionGrid.appendChild(regionCard(name, count)));
+    renderTopSpots();
     return;
   }
 
@@ -1071,7 +1186,10 @@ function render() {
   // filtrato), quindi lì si nasconde.
   const isFavView = state.region === FAVORITES_VIEW;
   homeHero.style.display = "none";
+  regionsHead.style.display = "none";
   regionGrid.style.display = "none";
+  topSpotsHead.style.display = "none";
+  topSpotsGrid.style.display = "none";
   filtersBar.style.display = "flex";
   backBtn.style.display = "inline-flex";
   favShortcut.style.display = "none";
