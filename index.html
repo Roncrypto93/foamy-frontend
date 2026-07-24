@@ -613,7 +613,12 @@ function calculateSurfRating(waveHeightM, wavePeriodS, windSpeedKn, windDirectio
   let rating = baseLevel;
   let windEffect = "none";
   if (baseLevel !== "Flat" && baseLevel !== "Bad") {
-    if (zoneEffect === "bump") {
+    // Il bonus vento offshore richiede almeno 5s di periodo: sotto quella
+    // soglia è mare da vento corto e disorganizzato, dove anche un vento
+    // perfettamente offshore non lo rende "Great" — es. Gallipoli Baia
+    // Verde, 0.94m@4.25s, saliva a Great col solo bonus direzione, troppo
+    // generoso per un periodo così corto (caso reale del 2026-07-24).
+    if (zoneEffect === "bump" && wavePeriodS >= 5) {
       rating = bumpSurfLevel(baseLevel);
       windEffect = "bump";
     } else if (zoneEffect === "cap") {
