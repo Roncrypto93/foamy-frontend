@@ -294,22 +294,15 @@
     -webkit-overflow-scrolling: touch; touch-action: pan-x; overscroll-behavior-x: contain;
   }
   .ws-scroll::-webkit-scrollbar { display: none; }
-  /* Sticky a sinistra: senza, "Vento"/"Mare" scorrono via col resto del
-     contenuto quando si scorre la settimana in orizzontale, perdendo il
-     riferimento di quale grafico si sta guardando. */
+  /* Sticky a sinistra: senza, "Vento" scorre via col resto del contenuto
+     quando si scorre la settimana in orizzontale, perdendo il riferimento
+     di cosa si sta guardando. */
   .ws-sub-label {
     font-family: var(--font-data); font-weight: 700; font-size: 11px; text-transform: uppercase;
     letter-spacing: .08em; color: var(--ink-dim); margin: 0 0 8px;
     position: sticky; left: 0; width: fit-content; background: var(--surface); padding-right: 10px;
   }
-  .ws-sea-days { display: flex; }
-  .ws-sea-day {
-    font-family: var(--font-data); font-weight: 600; font-size: 11.5px; color: var(--ink-bright);
-    text-align: center; padding: 6px 4px 8px; box-sizing: border-box; border-right: 1px solid var(--border);
-    border-bottom: 3px solid var(--border-strong);
-  }
-  .ws-sea-day:last-child { border-right: none; }
-  .ws-score-bars { display: flex; margin-top: 6px; }
+  .ws-score-bars { display: flex; margin-top: 10px; }
   .ws-score-bar { width: 34px; flex-shrink: 0; box-sizing: border-box; padding: 0 1.5px; }
   .ws-score-bar span { display: block; width: 100%; height: 6px; border-radius: 2px; }
 
@@ -1444,17 +1437,17 @@ function tideArrowSVG(rising) {
 // disallinearsi.
 const POINTS_PER_DAY = 8;
 
-// ---------- Riassunto settimana (solo desktop, sopra la tabella Forecast) ----------
-// Vento: il vecchio grafico SVG a colonne dense (tabella colorata stile
-// Windguru + freccia direzione), rimesso in uso qui pari pari — era stato
-// tolto insieme al grafico onda quando la tabella oraria l'ha sostituito
+// ---------- Forecast Vento - 7 giorni (solo desktop, sopra la tabella Forecast Mare) ----------
+// Il vecchio grafico SVG a colonne dense (tabella colorata stile Windguru
+// + freccia direzione), rimesso in uso qui pari pari — era stato tolto
+// insieme al grafico onda quando la tabella oraria l'ha sostituito
 // (commit 941a175), ma per questo riassunto "a colpo d'occhio" è meglio
-// del testo riga per riga della tabella sotto. Mare: non il vecchio
-// grafico a barre (mai richiesto di riportarlo), ma una versione nuova e
-// più semplice — stato del mare a parole per ogni giorno, con sotto una
-// striscia di barre sottili colorate dello score, un segmento per ogni
-// punto a 3 ore, stessa griglia di colonne del grafico vento sopra così
-// scorrono insieme in un unico contenitore.
+// del testo riga per riga della tabella sotto. Sotto il grafico, solo una
+// striscia di barre sottili colorate dello score (surf rating), un
+// segmento per ogni punto a 3 ore, stessa griglia di colonne del grafico
+// vento sopra così scorrono insieme in un unico contenitore — niente
+// stato del mare a parole qui (tolto su richiesta esplicita, restava solo
+// la linea colorata dello score).
 function svgElNS(tag, attrs) {
   const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
   for (const k in attrs) el.setAttribute(k, attrs[k]);
@@ -1576,8 +1569,6 @@ function weekSummaryHTML() {
       <div class="ws-scroll" id="wsScroll">
         <p class="ws-sub-label">Vento</p>
         <svg id="wsWindChart"></svg>
-        <p class="ws-sub-label" style="margin-top:12px">Mare</p>
-        <div class="ws-sea-days" id="wsSeaDays"></div>
         <div class="ws-score-bars" id="wsScoreBars"></div>
       </div>
     </section>
@@ -1588,31 +1579,11 @@ function renderWeekSummary(chart, windChart) {
   const svgEl = document.getElementById("wsWindChart");
   renderWindChart(svgEl, windChart);
 
-  const seaDaysEl = document.getElementById("wsSeaDays");
   const barsEl = document.getElementById("wsScoreBars");
   const n = Math.min(chart.length, windChart.length);
-  seaDaysEl.innerHTML = "";
   barsEl.innerHTML = "";
   if (!n) return;
-  const totalW = n * WIND2_COL_W;
-  seaDaysEl.style.width = totalW + "px";
-  barsEl.style.width = totalW + "px";
-
-  const totalDays = Math.ceil(n / POINTS_PER_DAY);
-  for (let d = 0; d < totalDays; d++) {
-    const dayStart = d * POINTS_PER_DAY;
-    const dayEnd = Math.min(dayStart + POINTS_PER_DAY, n);
-    const middayIdx = Math.min(dayStart + Math.floor(POINTS_PER_DAY / 2), dayEnd - 1);
-    const [, , shortLabel] = classifySeaState(chart[middayIdx].waveHeightM);
-    const dayLevel = chart[middayIdx].surfRating?.rating;
-    const dayColor = dayLevel && SURF_RATING_COLORS[dayLevel] ? SURF_RATING_COLORS[dayLevel] : "rgba(var(--ink-bright-rgb),0.25)";
-    const dayDiv = document.createElement("div");
-    dayDiv.className = "ws-sea-day";
-    dayDiv.style.width = ((dayEnd - dayStart) * WIND2_COL_W) + "px";
-    dayDiv.style.borderBottomColor = dayColor;
-    dayDiv.textContent = shortLabel;
-    seaDaysEl.appendChild(dayDiv);
-  }
+  barsEl.style.width = (n * WIND2_COL_W) + "px";
 
   for (let i = 0; i < n; i++) {
     const level = chart[i].surfRating?.rating;
