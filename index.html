@@ -187,8 +187,9 @@
   .top-spot-rating { font-family: var(--font-data); font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #0b0f19; padding: 3px 10px; border-radius: 20px; }
   .top-spot-name { font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--ink-bright); line-height: 1.25; }
   .top-spot-region { font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .07em; margin-top: -6px; }
-  .top-spot-stats { display: flex; gap: 16px; font-family: var(--font-data); font-size: 12.5px; color: var(--ink-dim); }
+  .top-spot-stats { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; font-family: var(--font-data); font-size: 15px; color: var(--ink-dim); }
   .top-spot-stats b { color: var(--ink-bright); font-weight: 700; }
+  .top-spot-wind-dir { display: inline-flex; align-items: center; gap: 4px; color: var(--ink-bright); font-size: 12.5px; font-weight: 700; }
   .top-spot-skeleton { height: 120px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); }
 
   #emptyState { text-align: center; padding: 60px 0; }
@@ -1123,7 +1124,11 @@ function topSpotCard(spot, f) {
     <span class="top-spot-rating" style="background:${SURF_RATING_COLORS[level] || "rgba(var(--ink-bright-rgb),0.3)"}">${level}</span>
     <span class="top-spot-name">${spot.name}</span>
     <span class="top-spot-region">${spotRegion(spot)}</span>
-    <span class="top-spot-stats"><b>${f.height ?? "—"}</b>&nbsp;m &nbsp; <b>${f.windSpeed ?? "—"}</b>&nbsp;kn</span>
+    <span class="top-spot-stats">
+      <span><b>${f.height ?? "—"}</b>&nbsp;m</span>
+      <span><b>${f.windSpeed ?? "—"}</b>&nbsp;kn</span>
+      ${f.windDir != null ? `<span class="top-spot-wind-dir">${directionArrowSVG(f.windDir + 180, 13)}${cardinal16(f.windDir)}</span>` : ""}
+    </span>
   `;
   card.onclick = () => openDrawer(spot);
   return card;
