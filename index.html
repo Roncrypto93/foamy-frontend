@@ -1055,10 +1055,17 @@ function loadCardLiveData(card, spot) {
 function spotCard(spot) {
   const card = document.createElement("button");
   card.className = "spot-card fade-up";
+  // La barra colorata mostra il punteggio surf, che esiste solo per gli
+  // spot con disciplina "wave" (calculateSurfRating/il backend non lo
+  // calcolano per gli spot solo kite/wind, es. Gallipoli Lido Pizzo — resta
+  // sempre null, non è un dato "mancante per ora"). Per quegli spot niente
+  // barra: mostrarla rossa per "punteggio assente" si leggerebbe come
+  // "condizioni brutte", quando in realtà lì il punteggio surf non ha senso.
+  const hasWaveRating = spot.disciplines.includes("wave");
   card.innerHTML = `
     <div class="spot-card-head">
       <span class="spot-card-name-row">
-        <span class="rating-bar" title="Condizione non ancora nota"></span>
+        ${hasWaveRating ? `<span class="rating-bar" title="Condizione non ancora nota"></span>` : ""}
         <span class="spot-card-name">${spot.name}</span>
       </span>
       <span class="spot-card-badges">
