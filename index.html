@@ -315,37 +315,36 @@
   .fc-gust-line b { color: var(--ink-bright); font-weight: 700; }
   .fc-dir-block { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
   .fc-dir-cardinal { font-size: 11px; font-weight: 800; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .04em; }
-  /* Etichetta "Swell"/"Vento" ripetuta per riga: inutile su desktop (c'è
-     già l'intestazione di colonna in .fc-day-col), serve solo nel layout
-     impilato sotto i 640px, dove le due colonne diventano due blocchi in
-     verticale e perdono il riferimento visivo della colonna. */
-  .fc-panel-lbl { display: none; }
   @media (max-width: 640px) {
-    /* Sotto i 640px la tabella a 3 colonne (ora, swell, vento) non ci sta
-       in orizzontale senza schiacciare il pannello vento a ~150px — prima
-       di questa modifica restava largo 460px fisso e lo scroll orizzontale
-       necessario per vederlo non era scoperto dall'utente (verificato via
-       misura reale: contenuto tagliato a destra del bordo dello schermo).
-       Soluzione: impilare ora → swell → vento in verticale, riga per riga,
-       usando tutta la larghezza dello schermo invece di dividerla in tre. */
-    .fc-day { grid-template-columns: 1fr; padding: 8px 0; }
-    .fc-day-col { display: none; }
-    .fc-row {
-      display: flex; flex-direction: column; min-width: 0; gap: 0;
-    }
-    .fc-hour {
-      flex-direction: row; align-items: center; justify-content: space-between;
-      padding: 10px 14px; gap: 8px;
-    }
-    .fc-panel {
-      border-left: none; border-top: 1px solid var(--border); padding: 10px 14px;
-    }
-    .fc-panel-lbl {
-      display: block; font-size: 9.5px; font-weight: 800; text-transform: uppercase;
-      letter-spacing: .08em; color: var(--ink-dim); margin-bottom: 8px;
-    }
-    .fc-microlbl { font-size: 9.5px; }
-    .fc-dir-cardinal { font-size: 12px; }
+    /* Le 3 colonne (ora, swell, vento) restano affiancate come su desktop
+       — niente scroll orizzontale, comprimiamo il contenuto perché ci
+       stia: min-width:460px annullato (era quello a forzare lo scroll
+       nascosto), font/spaziature ridotte solo qui. */
+    .fc-row, .fc-day { grid-template-columns: 46px 1fr 1fr; }
+    .fc-row { min-width: 0; }
+    .fc-panel { padding: 10px 6px; }
+    .fc-num-row { gap: 8px; }
+    /* Nel pannello stretto, "margin-left:auto"/"space-between" (pensati
+       per un pannello largo il doppio) spingevano energia e direzione
+       vento sul bordo destro, con un vuoto enorme nel mezzo: qui li
+       teniamo vicini al resto del dato invece che sparsi ai due estremi. */
+    .fc-swell-split { gap: 10px; justify-content: flex-start; }
+    .fc-energy { margin-left: 0; }
+    .fc-wind-split { gap: 10px; justify-content: flex-start; }
+    .fc-big { font-size: 15px; }
+    .fc-big .fc-unit { font-size: 9.5px; }
+    .fc-secondary { font-size: 13px; }
+    .fc-secondary .fc-unit { font-size: 9px; }
+    .fc-microlbl { font-size: 7.5px; }
+    .fc-meta { font-size: 9.5px; gap: 3px; margin-top: 5px; }
+    .fc-energy { padding: 3px 6px; }
+    .fc-energy .fc-energy-val { font-size: 13px; }
+    .fc-energy .fc-energy-lbl { font-size: 7px; }
+    .fc-gust-line { font-size: 9px; margin-top: 2px; }
+    .fc-dir-block svg { width: 16px; height: 16px; }
+    .fc-dir-cardinal { font-size: 9px; }
+    .fc-day-col { font-size: 8.5px; padding: 0 6px; }
+    .fc-day-label { font-size: 10px; padding: 0 10px; }
   }
   .legend-swatch--gradient {
     width: 46px; height: 6px; border-radius: 2px;
@@ -1411,7 +1410,6 @@ function renderForecastTable(chart, windChart) {
           ${level ? `<div class="fc-rating-tag" style="color:${stripe}">${level}</div>` : ""}
         </div>
         <div class="fc-panel">
-          <div class="fc-panel-lbl">Swell</div>
           <div class="fc-swell-split">
             <div>
               <div class="fc-num-row">
@@ -1433,7 +1431,6 @@ function renderForecastTable(chart, windChart) {
           </div>
         </div>
         <div class="fc-panel">
-          <div class="fc-panel-lbl">Vento</div>
           <div class="fc-wind-split">
             <div class="fc-wind-main">
               <div class="fc-big tabular">${w.windSpeedKn != null ? Math.round(w.windSpeedKn) : "—"}<span class="fc-unit">kn</span></div>
