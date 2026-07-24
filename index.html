@@ -276,10 +276,11 @@
      invece di due grafici a scorrimento orizzontale. */
   .fc-scrollbox {
     max-height: 62vh; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
     border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface);
   }
-  .fc-scrollbox::-webkit-scrollbar { width: 9px; }
-  .fc-scrollbox::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 5px; }
+  .fc-scrollbox::-webkit-scrollbar { width: 4px; }
+  .fc-scrollbox::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
   .fc-scrollbox::-webkit-scrollbar-track { background: transparent; }
   /* Prima colonna (ora + label giorno) a 56px: "Oggi" ci stava, ma
      "Domani" (bold, maiuscolo) no — spillava fuori dalla cella e finiva
