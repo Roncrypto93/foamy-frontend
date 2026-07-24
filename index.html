@@ -241,20 +241,15 @@
   .fc-scrollbox::-webkit-scrollbar { width: 9px; }
   .fc-scrollbox::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 5px; }
   .fc-scrollbox::-webkit-scrollbar-track { background: transparent; }
-  .fc-head {
-    position: sticky; top: 0; z-index: 4; height: 32px; display: grid;
-    grid-template-columns: 56px 1fr 1fr; align-items: center;
+  .fc-day {
+    position: sticky; top: 0; z-index: 4; display: grid;
+    grid-template-columns: 56px 1fr 1fr; align-items: center; padding: 9px 0;
     background: var(--surface-2); border-bottom: 1px solid var(--border-strong);
   }
-  .fc-col {
-    padding: 0 10px; font-size: 10px; font-weight: 800; text-transform: uppercase;
-    letter-spacing: .08em; color: var(--ink-dim); border-left: 1px solid var(--border);
-  }
-  .fc-col:first-child { border-left: none; }
-  .fc-day {
-    position: sticky; top: 32px; z-index: 3; background: var(--surface-2);
-    font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
-    color: var(--ink-bright); padding: 8px 12px; border-bottom: 1px solid var(--border-strong);
+  .fc-day-label { padding: 0 12px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-bright); }
+  .fc-day-col {
+    padding: 0 10px; font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--ink-dim); border-left: 1px solid var(--border);
   }
   .fc-row {
     display: grid; grid-template-columns: 56px 1fr 1fr; align-items: center; gap: 0;
@@ -263,11 +258,9 @@
   .fc-row::before { content: ""; position: absolute; left: 0; top: 5px; bottom: 5px; width: 4px; border-radius: 2px; background: var(--stripe); }
   .fc-row:last-child { border-bottom: none; }
   .fc-row:hover { background: var(--accent-wash); }
-  .fc-row.is-now { background: var(--accent-wash); }
   .fc-hour { display: flex; flex-direction: column; gap: 4px; padding: 14px 0 14px 16px; }
   .fc-hour-val { font-family: var(--font-data); font-size: 12.5px; font-weight: 700; color: var(--ink-bright); display: flex; align-items: center; gap: 5px; white-space: nowrap; }
   .fc-rating-tag { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
-  .fc-now-tag { font-size: 8px; font-weight: 800; letter-spacing: .05em; background: var(--accent); color: #00201d; padding: 1px 5px; border-radius: 20px; }
   .fc-panel { padding: 12px 10px; border-left: 1px solid var(--border); }
   .fc-num-row { display: flex; align-items: flex-end; gap: 16px; }
   .fc-num-group { display: flex; flex-direction: column; gap: 3px; }
@@ -290,7 +283,7 @@
   .fc-dir-block { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
   .fc-dir-cardinal { font-size: 11px; font-weight: 800; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .04em; }
   @media (max-width: 640px) {
-    .fc-row, .fc-head { grid-template-columns: 46px 1fr 1fr; }
+    .fc-row, .fc-day { grid-template-columns: 46px 1fr 1fr; }
     .fc-panel { padding: 10px 8px; }
   }
   .legend-swatch--gradient {
@@ -1212,26 +1205,18 @@ function renderForecastTable(chart, windChart) {
     return;
   }
 
-  // Punto più vicino a "adesso", per evidenziare la riga corrente nella lista.
-  const now = Date.now();
-  let nowIdx = -1, nowDiff = Infinity;
-  for (let i = 0; i < n; i++) {
-    const d = Math.abs(new Date(chart[i].time).getTime() - now);
-    if (d < nowDiff) { nowDiff = d; nowIdx = i; }
-  }
-
-  let html = `<div class="fc-head">
-    <div class="fc-col"></div>
-    <div class="fc-col">Swell</div>
-    <div class="fc-col">Vento</div>
-  </div>`;
+  let html = "";
 
   const totalDays = Math.ceil(n / POINTS_PER_DAY);
   for (let d = 0; d < totalDays; d++) {
     const dayStart = d * POINTS_PER_DAY;
     const dayEnd = Math.min(dayStart + POINTS_PER_DAY, n);
     const dateStr = chart[dayStart].time.slice(0, 10);
-    html += `<div class="fc-day">${dayLabel(dateStr, d)}</div>`;
+    html += `<div class="fc-day">
+      <div class="fc-day-label">${dayLabel(dateStr, d)}</div>
+      <div class="fc-day-col">Swell</div>
+      <div class="fc-day-col">Vento</div>
+    </div>`;
 
     for (let i = dayStart; i < dayEnd; i++) {
       const p = chart[i];
@@ -1240,13 +1225,12 @@ function renderForecastTable(chart, windChart) {
       const stripe = level && SURF_RATING_COLORS[level] ? SURF_RATING_COLORS[level] : "rgba(var(--ink-bright-rgb),0.25)";
       const energy = p.waveEnergyKJ != null ? Math.round(p.waveEnergyKJ) : "—";
       const hour = new Date(p.time).getHours();
-      const isNow = i === nowIdx;
       const waveDir = p.waveDirectionDeg;
       const windDir = w.windDirectionDeg;
 
-      html += `<div class="fc-row${isNow ? " is-now" : ""}" style="--stripe:${stripe}">
+      html += `<div class="fc-row" style="--stripe:${stripe}">
         <div class="fc-hour">
-          <div class="fc-hour-val tabular">${String(hour).padStart(2, "0")}:00${isNow ? ' <span class="fc-now-tag">ORA</span>' : ""}</div>
+          <div class="fc-hour-val tabular">${String(hour).padStart(2, "0")}:00</div>
           ${level ? `<div class="fc-rating-tag" style="color:${stripe}">${level}</div>` : ""}
         </div>
         <div class="fc-panel">
