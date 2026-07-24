@@ -234,7 +234,14 @@
   .num-secondary { font-family: var(--font-data); font-size: 12px; color: var(--ink); }
   .num-secondary b { color: var(--ink-bright); font-weight: 600; }
 
-  .wave-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+  /* Barra colorata dello score (stesso trattamento della .rating-bar sulle
+     spot-card e della striscia a sinistra di ogni riga del forecast):
+     qui a sinistra dei dati mare veri e propri, non renderizzata se lo
+     spot non ha un rating (niente wave discipline / dato non disponibile),
+     per non implicare "punteggio basso" dove in realtà non c'è punteggio. */
+  .wave-top-row { display: flex; align-items: stretch; gap: 14px; }
+  .live-score-bar { width: 4px; border-radius: 2px; flex-shrink: 0; align-self: stretch; min-height: 48px; }
+  .wave-top { flex: 1; min-width: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
   .wave-height-group { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
   .wave-height { display: flex; align-items: baseline; gap: 6px; }
   .wave-height .val { font-family: var(--font-data); font-weight: 600; font-size: 48px; color: var(--ink-bright); line-height: 1; }
@@ -1319,14 +1326,17 @@ function currentConditionsHTML(f, spot) {
         </div>
         <div class="swell-block">
           <p class="panel-label" style="display:flex;align-items:center;gap:8px">Swell${f.surfRating?.rating ? ` <span class="fc-rating-tag" style="color:${SURF_RATING_COLORS[f.surfRating.rating] || "inherit"}">${f.surfRating.rating}</span>` : ""}</p>
-          <div class="wave-top">
-            <div class="wave-height-group">
-              <div class="wave-height"><span class="val tabular">${f.height ?? "—"}</span><span class="unit">m</span></div>
-              <div class="wave-period"><span class="val tabular">${f.period ?? "—"}</span><span class="unit">s periodo</span></div>
-            </div>
-            <div class="kj-readout">
-              <div class="val tabular">${f.energy ?? "—"}</div>
-              <div class="lbl">kJ energia</div>
+          <div class="wave-top-row">
+            ${f.surfRating?.rating ? `<div class="live-score-bar" style="background:${SURF_RATING_COLORS[f.surfRating.rating] || "var(--border-strong)"}"></div>` : ""}
+            <div class="wave-top">
+              <div class="wave-height-group">
+                <div class="wave-height"><span class="val tabular">${f.height ?? "—"}</span><span class="unit">m</span></div>
+                <div class="wave-period"><span class="val tabular">${f.period ?? "—"}</span><span class="unit">s periodo</span></div>
+              </div>
+              <div class="kj-readout">
+                <div class="val tabular">${f.energy ?? "—"}</div>
+                <div class="lbl">kJ energia</div>
+              </div>
             </div>
           </div>
           ${f.waveDir != null ? `
