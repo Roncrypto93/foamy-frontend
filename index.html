@@ -357,6 +357,19 @@
   .fc-hour-val { font-family: var(--font-data); font-size: 12.5px; font-weight: 700; color: var(--ink-bright); display: flex; align-items: center; gap: 5px; white-space: nowrap; }
   .fc-rating-tag { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
   .fc-panel { padding: 12px 10px; border-left: 1px solid var(--border); }
+  /* Colonna Vento tinta leggermente (stesso var(--surface-2) già usato
+     per la sticky-bar del giorno) per distinguerla a colpo d'occhio dalla
+     colonna Swell: prima erano identiche, si leggevano come un unico
+     blocco. :last-of-type funziona perché .fc-panel compare sempre
+     esattamente 2 volte per riga (swell, poi vento). */
+  .fc-panel:last-of-type { background: var(--surface-2); }
+  /* "Chip" colorato dietro i valori vento (velocità e raffica), stessa
+     scala colori di WIND_COLOR_STOPS/windColor() già usata nel vecchio
+     grafico vento: testo scuro fisso perché la scala va dal bianco al
+     viola e un colore di testo unico non resterebbe leggibile su tutti
+     gli stop. */
+  .fc-wind-chip { display: inline-block; padding: 1px 7px; border-radius: 5px; border: 1px solid rgba(11,15,25,0.35); color: #0b0f19; }
+  .fc-wind-chip .fc-unit { color: rgba(11,15,25,0.62) !important; }
   .fc-num-row { display: flex; align-items: flex-end; gap: 16px; }
   .fc-num-group { display: flex; flex-direction: column; gap: 3px; }
   .fc-microlbl { font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-dim); }
@@ -402,6 +415,7 @@
     .fc-swell-split { gap: 8px; justify-content: flex-start; }
     .fc-energy { margin-left: 0; }
     .fc-wind-split { gap: 8px; justify-content: flex-start; }
+    .fc-wind-chip { padding: 0 4px; border-radius: 4px; }
     .fc-big { font-size: 15px; }
     .fc-big .fc-unit { font-size: 9.5px; }
     .fc-secondary { font-size: 13px; }
@@ -1713,8 +1727,8 @@ function renderForecastTable(chart, windChart) {
         <div class="fc-panel">
           <div class="fc-wind-split">
             <div class="fc-wind-main">
-              <div class="fc-big tabular">${w.windSpeedKn != null ? Math.round(w.windSpeedKn) : "—"}<span class="fc-unit">kn</span></div>
-              <div class="fc-gust-line">Raffica <b class="tabular">${w.windGustsKn != null ? Math.round(w.windGustsKn) : "—"}kn</b></div>
+              <div class="fc-big tabular">${w.windSpeedKn != null ? `<span class="fc-wind-chip" style="background:${windColor(w.windSpeedKn)}">${Math.round(w.windSpeedKn)}<span class="fc-unit">kn</span></span>` : "—"}</div>
+              <div class="fc-gust-line">Raffica ${w.windGustsKn != null ? `<b class="tabular fc-wind-chip" style="background:${windColor(w.windGustsKn)}">${Math.round(w.windGustsKn)}kn</b>` : `<b class="tabular">—</b>`}</div>
             </div>
             <div class="fc-dir-block" style="color:var(--ink-bright)">
               ${windDir != null ? directionArrowSVG(windDir + 180, 22) : ""}
