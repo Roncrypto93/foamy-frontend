@@ -129,8 +129,10 @@
   /* Vento/onda/periodo attuali, caricati in background dopo che la card
      compare (placeholder "···" finché non arrivano) — così si vede un
      accenno delle condizioni prima ancora di aprire lo spot. */
-  .spot-card-live { display: flex; gap: 14px; font-family: var(--font-data); font-size: 11px; color: var(--ink-dim); }
+  .spot-card-live { display: flex; align-items: center; gap: 14px; font-family: var(--font-data); font-size: 11px; color: var(--ink-dim); }
   .spot-card-live b { color: var(--ink-bright); font-weight: 600; }
+  .scl-dir-item { align-items: center; gap: 4px; color: var(--ink-bright); font-weight: 600; }
+  .scl-dir-item svg { flex-shrink: 0; }
   .spot-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
   .spot-card-fav { display: inline-flex; align-items: center; justify-content: center; color: var(--ink-dim); cursor: pointer; padding: 4px; margin: -4px; border-radius: 50%; }
   .spot-card-fav:hover { color: var(--accent-soft); background: var(--surface-2); }
@@ -305,6 +307,14 @@
   .ws-score-bars { display: flex; margin-top: 10px; }
   .ws-score-bar { width: 34px; flex-shrink: 0; box-sizing: border-box; padding: 0 1.5px; }
   .ws-score-bar span { display: block; width: 100%; height: 6px; border-radius: 2px; }
+
+  /* Legenda dello score mare (stessi colori di SURF_RATING_COLORS usati
+     nelle ws-score-bar sotto): sticky a sinistra come ws-sub-label, per lo
+     stesso motivo — altrimenti scorre via insieme al resto quando si
+     scorre la settimana in orizzontale. */
+  .ws-sea-legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 8px; position: sticky; left: 0; width: fit-content; }
+  .ws-sea-legend-item { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-data); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-dim); }
+  .ws-sea-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
   /* ---------- Forecast: tabella oraria Swell + Vento (scroll verticale) ----------
      Sostituisce i precedenti grafici SVG separati onda/vento: stessa
@@ -1142,6 +1152,14 @@ function renderCardLive(card, f) {
   if (windEl) windEl.textContent = f.windSpeed ?? "—";
   if (waveEl) waveEl.textContent = f.height ?? "—";
   if (periodEl) periodEl.textContent = f.period ?? "—";
+  // Direzione vento: stessa freccia+cardinale già usata in "I migliori
+  // spot del momento" (directionArrowSVG(windDir+180, ...) + cardinal16),
+  // nascosta se il dato non è disponibile invece di mostrare un trattino.
+  const dirEl = card.querySelector(".scl-dir-item");
+  if (dirEl && f.windDir != null) {
+    dirEl.innerHTML = `${directionArrowSVG(f.windDir + 180, 12)}${cardinal16(f.windDir)}`;
+    dirEl.style.display = "inline-flex";
+  }
   // f.surfRating è { rating, baseLevel, windEffect } (vedi
   // calculateSurfRating), non una stringa — il livello vero è .rating.
   // null è un esito valido e definitivo (es. spot solo kite/wind, senza
@@ -1192,6 +1210,7 @@ function spotCard(spot) {
     </div>
     <div class="spot-card-live">
       <span class="scl-item"><b class="scl-wind">···</b> kn</span>
+      <span class="scl-item scl-dir-item" style="display:none"></span>
       <span class="scl-item"><b class="scl-wave">···</b> m</span>
       <span class="scl-item"><b class="scl-period">···</b> s</span>
     </div>
@@ -1562,6 +1581,22 @@ function renderWindChart(svgEl_, windChart) {
   }
 }
 
+// Legenda statica delle ws-score-bar sotto il grafico vento: stessi colori
+// di SURF_RATING_COLORS. Flat unito a Bad (stesso colore #e0524f) — due
+// pallini identici in legenda non aggiungerebbero informazione.
+const SEA_SCORE_LEGEND = [
+  ["Bad", SURF_RATING_COLORS.Bad],
+  ["Fair", SURF_RATING_COLORS.Fair],
+  ["Good", SURF_RATING_COLORS.Good],
+  ["Great", SURF_RATING_COLORS.Great],
+  ["Perfect", SURF_RATING_COLORS.Perfect],
+];
+function seaScoreLegendHTML() {
+  return SEA_SCORE_LEGEND.map(([label, color]) =>
+    `<span class="ws-sea-legend-item"><span class="ws-sea-legend-dot" style="background:${color}"></span>${label}</span>`
+  ).join("");
+}
+
 function weekSummaryHTML() {
   return `
     <section class="panel week-summary-panel" id="weekSummaryPanel">
@@ -1569,6 +1604,8 @@ function weekSummaryHTML() {
       <div class="ws-scroll" id="wsScroll">
         <p class="ws-sub-label">Vento</p>
         <svg id="wsWindChart"></svg>
+        <p class="ws-sub-label" style="margin-top:14px">Mare</p>
+        <div class="ws-sea-legend">${seaScoreLegendHTML()}</div>
         <div class="ws-score-bars" id="wsScoreBars"></div>
       </div>
     </section>
