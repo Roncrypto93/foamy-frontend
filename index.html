@@ -168,7 +168,7 @@
   .rating-bar { width: 4px; height: 20px; align-self: center; border-radius: 2px; background: var(--border-strong); flex-shrink: 0; }
   .spot-card-name { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--ink-bright); line-height: 1.25; }
   .spot-card-badges { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-top: 2px; }
-  .webcam-badge { display: inline-flex; color: var(--accent); }
+  .webcam-badge { display: inline-flex; color: var(--brand); }
   /* Vento/onda/periodo attuali, caricati in background dopo che la card
      compare (placeholder "···" finché non arrivano) — così si vede un
      accenno delle condizioni prima ancora di aprire lo spot. */
@@ -189,13 +189,6 @@
   .home-hero-title { font-family: var(--font-display); font-weight: 900; font-size: 38px; color: var(--ink-bright); margin: 0; line-height: 1.1; letter-spacing: -.01em; text-wrap: balance; max-width: 640px; }
   .home-hero-accent { color: var(--brand); }
 
-  /* Separatore sotto il testo hero: non più una linea di sfondo dietro il
-     testo, ma una striscia a sé — un motivo a piastrelle (SVG <pattern>,
-     si ripete da solo su tutta la larghezza) di icone stilizzate mare/
-     vento (onda, rosa dei venti, raffica), invece di un'immagine unica.
-     Le icone usano var(--accent) come gli altri elementi SVG inline del
-     sito, quindi seguono da sole il cambio tema chiaro/scuro. */
-
   /* Intestazioni delle sezioni home (regioni / migliori spot) — stesso
      trattamento tipografico per entrambe, per leggerle come un'unica
      famiglia di banner invece di pezzi scollegati. */
@@ -214,8 +207,7 @@
      costante in pixel a schermo per tutte le regioni, indipendentemente
      dalla scala del viewBox di ciascuna mappa (variano molto: Puglia ~289
      unità larga, Sicilia ~261, Emilia-Romagna ~287). */
-  .region-map path { fill: none; stroke: var(--accent-soft); stroke-width: 3.2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; transition: stroke .15s; }
-  .region-card:hover .region-map path { stroke: var(--accent); }
+  .region-map path { fill: none; stroke: var(--brand); stroke-width: 3.2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
   .region-name { font-family: var(--font-display); font-weight: 700; font-size: 17px; color: var(--ink-bright); }
   .region-count { font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .08em; }
   .back-to-regions { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-data); font-size: 11px; font-weight: 600; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .06em; background: transparent; border: none; cursor: pointer; padding: 0; margin: 0 0 14px; }
@@ -263,7 +255,7 @@
   .drawer-panel::-webkit-scrollbar { display: none; }
   .drawer-head { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 22px; display: flex; align-items: flex-start; justify-content: space-between; position: sticky; top: 0; z-index: 2; }
   .drawer-head-inner { max-width: 1400px; margin: 0 auto; width: 100%; display: flex; align-items: flex-start; justify-content: space-between; }
-  .drawer-coast { font-family: var(--font-data); font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--accent); margin: 0 0 4px; }
+  .drawer-coast { font-family: var(--font-data); font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--brand); margin: 0 0 4px; }
   .drawer-title { font-family: var(--font-display); font-weight: 900; font-size: 30px; color: var(--ink-bright); margin: 0; line-height: 1.1; }
   .drawer-close { background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 50%; width: 38px; height: 38px; color: var(--ink-dim); font-size: 22px; line-height: 1; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
   .drawer-close:hover { color: var(--ink-bright); border-color: var(--accent); }
@@ -283,10 +275,10 @@
   .arrow-widget { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; width: 74px; }
   .arrow-widget svg { display: block; }
   .arrow-cardinal { font-family: var(--font-data); font-weight: 600; font-size: 16px; color: var(--ink-bright); }
-  .arrow-name { font-family: var(--font-data); font-size: 10px; color: var(--accent-soft); text-transform: uppercase; letter-spacing: .06em; }
+  .arrow-name { font-family: var(--font-data); font-size: 10px; color: var(--brand); text-transform: uppercase; letter-spacing: .06em; }
   .wind-numbers { display: flex; flex-direction: column; gap: 8px; }
   .num-primary { display: flex; align-items: baseline; gap: 6px; }
-  .num-primary .val { font-family: var(--font-data); font-weight: 600; font-size: 48px; color: var(--accent); line-height: 1; }
+  .num-primary .val { font-family: var(--font-data); font-weight: 600; font-size: 48px; color: var(--brand); line-height: 1; }
   .num-primary .unit { font-family: var(--font-data); font-size: 13px; color: var(--ink-dim); }
   .num-secondary { font-family: var(--font-data); font-size: 12px; color: var(--ink); }
   .num-secondary b { color: var(--ink-bright); font-weight: 600; }
@@ -304,7 +296,7 @@
   .wave-height .val { font-family: var(--font-data); font-weight: 600; font-size: 48px; color: var(--ink-bright); line-height: 1; }
   .wave-height .unit { font-family: var(--font-data); font-size: 13px; color: var(--ink-dim); }
   .wave-period { display: flex; align-items: baseline; gap: 5px; }
-  .wave-period .val { font-family: var(--font-data); font-weight: 600; font-size: 24px; color: var(--accent-soft); line-height: 1; }
+  .wave-period .val { font-family: var(--font-data); font-weight: 600; font-size: 24px; color: var(--brand); line-height: 1; }
   .wave-period .unit { font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); }
   .kj-readout { text-align: right; }
   .kj-readout .val { font-family: var(--font-data); font-weight: 600; font-size: 22px; color: var(--ink-bright); }
@@ -313,10 +305,10 @@
 
   .water-widget { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; gap: 20px; flex-wrap: wrap; }
   .water-item { display: flex; align-items: center; gap: 8px; }
-  .water-icon { color: var(--accent-soft); flex-shrink: 0; }
+  .water-icon { color: var(--brand); flex-shrink: 0; }
   .water-item .val { font-family: var(--font-data); font-weight: 600; font-size: 19px; color: var(--ink-bright); }
   .water-item .lbl { font-family: var(--font-data); font-size: 10px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .08em; }
-  .tide-trend.rising { color: var(--accent); }
+  .tide-trend.rising { color: var(--brand); }
   .tide-trend.falling { color: var(--alert); }
 
   .top-banners { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 20px; }
@@ -429,7 +421,7 @@
   .fc-gust-line b { color: var(--ink-bright); font-weight: 700; }
   .fc-dir-block { display: flex; flex-direction: column; align-items: center; gap: 3px; flex-shrink: 0; }
   .fc-dir-cardinal { font-size: 11px; font-weight: 800; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .04em; }
-  .fc-dir-name { font-size: 9px; font-weight: 600; color: var(--accent-soft); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+  .fc-dir-name { font-size: 9px; font-weight: 600; color: var(--brand); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
   @media (max-width: 640px) {
     /* Le 3 colonne (ora, swell, vento) restano affiancate come su desktop
        — niente scroll orizzontale, comprimiamo il contenuto perché ci
@@ -1640,7 +1632,7 @@ function renderWindChart(svgEl_, windChart) {
       g.appendChild(svgElNS("path", { d: "M0,-6 L-4,5 L0,2 L4,5 Z", fill: "var(--ink-bright)" }));
       svgEl_.appendChild(g);
 
-      const dirLbl = svgElNS("text", { x: cx, y: WIND2_DIR_ZONE_TOP + 26, "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-weight": 600, "font-size": 9, fill: "var(--accent-soft)" });
+      const dirLbl = svgElNS("text", { x: cx, y: WIND2_DIR_ZONE_TOP + 26, "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-weight": 600, "font-size": 9, fill: "var(--brand)" });
       dirLbl.textContent = cardinal16(dir);
       svgEl_.appendChild(dirLbl);
     }
@@ -1650,7 +1642,7 @@ function renderWindChart(svgEl_, windChart) {
     const idx = Math.min(d * POINTS_PER_DAY + Math.floor(POINTS_PER_DAY / 2), n - 1);
     const dateStr = windChart[idx].time.slice(0, 10);
     const cx = (d * POINTS_PER_DAY + POINTS_PER_DAY / 2) * WIND2_COL_W;
-    const dayLbl = svgElNS("text", { x: cx, y: WIND2_DAY_H - 5, "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-weight": 700, "font-size": 12, fill: "var(--accent-soft)" });
+    const dayLbl = svgElNS("text", { x: cx, y: WIND2_DAY_H - 5, "text-anchor": "middle", "font-family": "Archivo, sans-serif", "font-weight": 700, "font-size": 12, fill: "var(--brand)" });
     dayLbl.textContent = dayLabel(dateStr, d);
     svgEl_.appendChild(dayLbl);
   }
@@ -1777,7 +1769,7 @@ function renderForecastTable(chart, windChart, spot) {
                   <div class="fc-microlbl">Periodo</div>
                 </div>
               </div>
-              <div class="fc-meta">${waveDir != null ? `<span style="color:var(--accent-soft)">${directionArrowSVG(waveDir + 180, 12)}</span>` : ""} ${waveDir != null ? cardinal16(waveDir) : "—"}</div>
+              <div class="fc-meta">${waveDir != null ? `<span style="color:var(--brand)">${directionArrowSVG(waveDir + 180, 12)}</span>` : ""} ${waveDir != null ? cardinal16(waveDir) : "—"}</div>
             </div>
             <div class="fc-energy">
               <div class="fc-energy-toplbl">Energia</div>
