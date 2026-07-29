@@ -181,8 +181,6 @@
      vento (onda, rosa dei venti, raffica), invece di un'immagine unica.
      Le icone usano var(--accent) come gli altri elementi SVG inline del
      sito, quindi seguono da sole il cambio tema chiaro/scuro. */
-  .hero-divider { width: 100%; height: 40px; margin: 22px 0 28px; }
-  .hero-divider svg { display: block; width: 100%; height: 100%; }
 
   /* Intestazioni delle sezioni home (regioni / migliori spot) — stesso
      trattamento tipografico per entrambe, per leggerle come un'unica
@@ -584,29 +582,6 @@
     <section class="home-hero" id="homeHero">
       <h1 class="home-hero-title">Le previsioni più accurate del Mediterraneo, con webcam integrate. <span class="home-hero-accent">Let's get foamy!</span></h1>
     </section>
-    <div class="hero-divider" id="homeHeroDivider" aria-hidden="true">
-      <svg width="100%" height="40">
-        <defs>
-          <pattern id="heroDividerPattern" width="220" height="40" patternUnits="userSpaceOnUse">
-            <!-- onda -->
-            <path d="M10,24 C15,14 21,14 26,24 C31,34 37,34 42,24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" opacity="0.5" />
-            <!-- rosa dei venti -->
-            <g opacity="0.5">
-              <circle cx="104" cy="20" r="11" fill="none" stroke="var(--accent)" stroke-width="2" />
-              <path d="M104,5 L104,9 M104,31 L104,35 M88,20 L92,20 M116,20 L120,20" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" />
-              <circle cx="104" cy="20" r="1.6" fill="var(--accent)" />
-            </g>
-            <!-- raffica di vento -->
-            <g opacity="0.5" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round">
-              <path d="M155,13 H180 C184,13 184,9 180,9" />
-              <path d="M155,20 H188 C193,20 193,25 188,25" />
-              <path d="M155,27 H172 C175,27 175,30 172,30" />
-            </g>
-          </pattern>
-        </defs>
-        <rect width="100%" height="40" fill="url(#heroDividerPattern)" />
-      </svg>
-    </div>
     <button class="back-to-regions" id="backToRegions" style="display:none">← Tutte le regioni</button>
     <section class="section-head" id="regionsHead">
       <h2 class="section-title">Esplora gli spot</h2>
@@ -1385,7 +1360,6 @@ async function renderTopSpots() {
 
 function render() {
   const homeHero = document.getElementById("homeHero");
-  const homeHeroDivider = document.getElementById("homeHeroDivider");
   const regionsHead = document.getElementById("regionsHead");
   const regionGrid = document.getElementById("regionGrid");
   const topSpotsHead = document.getElementById("topSpotsHead");
@@ -1402,7 +1376,6 @@ function render() {
     // (riguardano gli spot dentro una regione), solo la scorciatoia ai
     // preferiti globali in alto a destra.
     homeHero.style.display = "block";
-    homeHeroDivider.style.display = "block";
     regionsHead.style.display = "block";
     regionGrid.style.display = "grid";
     topSpotsHead.style.display = "block";
@@ -1431,7 +1404,6 @@ function render() {
   // filtrato), quindi lì si nasconde.
   const isFavView = state.region === FAVORITES_VIEW;
   homeHero.style.display = "none";
-  homeHeroDivider.style.display = "none";
   regionsHead.style.display = "none";
   regionGrid.style.display = "none";
   topSpotsHead.style.display = "none";
