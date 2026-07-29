@@ -96,7 +96,17 @@
     * { animation-duration: .01ms !important; }
   }
 
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 64px; width: 100%; }
+  /* Grid a due colonne: icone naviga-rapido a sinistra, contenuto (wrap) a
+     destra — .wrap in display:flex;flex-direction:column cosi il footer
+     (margin-top:auto, spostato dentro .wrap sotto) resta ancorato in fondo
+     anche quando .app-shell stretcha la riga oltre l'altezza naturale del
+     contenuto (una cella grid dà un'altezza "definita" ai discendenti,
+     serve perché margin-top:auto funzioni). grid-column esplicita su .wrap
+     cosi non si restringe quando #quickActionsGrid è display:none (dentro
+     una regione) e resta l'unico grid-item — senza, l'auto-placement lo
+     metterebbe nella prima colonna invece che occupare tutto lo spazio. */
+  .app-shell { display: grid; grid-template-columns: auto 1fr; flex: 1; }
+  .wrap { grid-column: 2; max-width: 1180px; margin: 0 auto; padding: 20px 20px 0; width: 100%; min-width: 0; display: flex; flex-direction: column; }
 
   .topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 20px 0 18px; border-bottom: 1px solid var(--border); }
   .brand { display: flex; align-items: center; gap: 12px; }
@@ -123,10 +133,10 @@
   .chip-btn[aria-pressed="true"] { color: #00201d; background: var(--accent); border-color: var(--accent); }
 
   /* "Naviga rapido" — 3 azioni (regioni/top spot/preferiti), solo a livello
-     home: pulsanti piccoli come i primi (icona 20px + microlabel sotto),
-     ma senza più la barra verticale a tutta altezza — qui sono una
-     semplice riga allineata a sinistra, senza sfondo/bordo di contenitore. */
-  .quick-actions-row { display: flex; gap: 18px; margin-top: 18px; }
+     home: pulsanti piccoli (icona 20px + microlabel sotto) in colonna a
+     sinistra di tutto il contenuto (testo hero, regioni, top spot) — senza
+     sfondo/bordo di contenitore, quindi non si legge come una "barra". */
+  .quick-actions-col { grid-column: 1; display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 18px 0 0; }
   .side-nav-item-wrap { display: flex; flex-direction: column; align-items: center; gap: 0; }
   .side-nav-item {
     width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;
@@ -520,6 +530,27 @@
 </head>
 <body>
 
+<div class="app-shell">
+  <nav class="quick-actions-col" id="quickActionsGrid" aria-label="Navigazione rapida">
+    <div class="side-nav-item-wrap">
+      <button class="side-nav-item" id="qaRegioni" aria-current="true" title="Regioni">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.3"/></svg>
+      </button>
+      <span class="side-nav-item-label">Regioni</span>
+    </div>
+    <div class="side-nav-item-wrap">
+      <button class="side-nav-item" id="qaChart" title="Chart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>
+      </button>
+      <span class="side-nav-item-label">Chart</span>
+    </div>
+    <div class="side-nav-item-wrap">
+      <button class="side-nav-item" id="qaFav" title="Preferiti">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.2 1.1 6-5.3-3-5.3 3 1.1-6-4.4-4.2 6-.7z"/></svg>
+      </button>
+      <span class="side-nav-item-label">Preferiti</span>
+    </div>
+  </nav>
 <div class="wrap">
   <header class="topbar">
     <div class="brand">
@@ -545,26 +576,6 @@
     <section class="home-hero" id="homeHero">
       <h1 class="home-hero-title">Le previsioni più accurate del Mediterraneo, con webcam integrate. <span class="home-hero-accent">Let's get foamy!</span></h1>
     </section>
-    <div id="quickActionsGrid" class="quick-actions-row">
-      <div class="side-nav-item-wrap">
-        <button class="side-nav-item" id="qaRegioni" aria-current="true" title="Regioni">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.3"/></svg>
-        </button>
-        <span class="side-nav-item-label">Regioni</span>
-      </div>
-      <div class="side-nav-item-wrap">
-        <button class="side-nav-item" id="qaChart" title="Chart">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>
-        </button>
-        <span class="side-nav-item-label">Chart</span>
-      </div>
-      <div class="side-nav-item-wrap">
-        <button class="side-nav-item" id="qaFav" title="Preferiti">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.2 1.1 6-5.3-3-5.3 3 1.1-6-4.4-4.2 6-.7z"/></svg>
-        </button>
-        <span class="side-nav-item-label">Preferiti</span>
-      </div>
-    </div>
     <button class="back-to-regions" id="backToRegions" style="display:none">← Tutte le regioni</button>
     <section class="section-head" id="regionsHead">
       <h2 class="section-title">Esplora gli spot</h2>
@@ -583,10 +594,11 @@
       <button id="resetFilters">Azzera filtri</button>
     </div>
   </main>
+  <footer>
+    <p>Foamy · Previsioni surf, wind & kite per la Puglia</p>
+  </footer>
 </div>
-<footer>
-  <p>Foamy · Previsioni surf, wind & kite per la Puglia</p>
-</footer>
+</div>
 
 <div id="drawerRoot"></div>
 
