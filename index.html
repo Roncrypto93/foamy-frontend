@@ -88,7 +88,16 @@
     * { animation-duration: .01ms !important; }
   }
 
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 64px; width: 100%; flex: 1; min-width: 0; }
+  /* display:flex;flex-direction:column qui (non su .app-shell) cosi il
+     footer (margin-top:auto) resta ancorato in fondo al .wrap anche quando
+     il contenuto è più corto della sidebar/viewport — la cella grid di
+     .app-shell dà a .wrap un'altezza definita, che il footer può sfruttare.
+     grid-column esplicita (invece di lasciare fare all'auto-placement)
+     cosi .wrap resta sempre nella colonna "1fr" anche quando #sideNav è
+     display:none (dentro una regione) — senza, con un solo grid-item
+     rimasto l'auto-placement lo metteva nella prima colonna ("auto"),
+     restringendolo invece di fargli occupare tutto lo spazio libero. */
+  .wrap { grid-column: 2; max-width: 1180px; margin: 0 auto; padding: 20px 20px 0; width: 100%; min-width: 0; display: flex; flex-direction: column; }
 
   .topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 20px 0 18px; border-bottom: 1px solid var(--border); }
   .brand { display: flex; align-items: center; gap: 12px; }
@@ -117,9 +126,14 @@
   /* Sidebar di icone a sinistra, solo per il livello home (scelta regione)
      — nascosta non appena si entra in una regione, stesso trattamento di
      home-hero/regionsHead/topSpotsHead (vedi render()). */
-  .app-shell { display: flex; align-items: stretch; flex: 1; }
+  /* Grid invece di flex per la colonna sidebar/contenuto: una cella grid
+     stretchata dà un'altezza "definita" ai suoi discendenti, per cui il
+     trucco margin-top:auto del footer dentro .wrap (sotto) funziona in
+     modo affidabile — con flex annidato in flex la stessa cosa dipende da
+     un dettaglio di implementazione meno uniforme tra i browser. */
+  .app-shell { display: grid; grid-template-columns: auto 1fr; flex: 1; }
   .side-nav {
-    width: 64px; flex-shrink: 0; background: var(--surface);
+    grid-column: 1; width: 64px; background: var(--surface);
     border-right: 1px solid var(--border); flex-direction: column;
     align-items: center; gap: 4px; padding: 18px 0;
   }
@@ -136,12 +150,6 @@
     letter-spacing: .04em; margin-top: 3px;
   }
   .side-nav-item-wrap { display: flex; flex-direction: column; align-items: center; gap: 0; }
-  .side-nav-spacer { flex: 1; }
-  .side-nav-theme {
-    width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    background: var(--surface-2); border: 1px solid var(--border-strong); color: var(--ink-bright); cursor: pointer;
-  }
-  .side-nav-theme:hover { border-color: var(--accent); color: var(--accent); }
 
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 20px; }
   .spot-card { text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; cursor: pointer; transition: border-color .15s, background .15s; }
@@ -480,7 +488,7 @@
      (padding, dimensioni, un riposizionamento a griglia): nessun
      comportamento o contenuto cambia rispetto a desktop/tablet. */
   @media (max-width: 640px) {
-    .wrap { padding: 14px 14px 40px; }
+    .wrap { padding: 14px 14px 0; }
     .topbar { padding: 14px 0 12px; gap: 12px; }
     .brand-mark { width: 28px; height: 28px; }
     .brand-name { font-size: 18px; }
@@ -554,8 +562,6 @@
       </button>
       <span class="side-nav-item-label">Preferiti</span>
     </div>
-    <div class="side-nav-spacer"></div>
-    <button class="side-nav-theme" id="sideNavTheme" aria-label="Cambia tema chiaro/scuro" title="Cambia tema chiaro/scuro"></button>
   </nav>
 <div class="wrap">
   <header class="topbar">
@@ -600,12 +606,11 @@
       <button id="resetFilters">Azzera filtri</button>
     </div>
   </main>
+  <footer>
+    <p>Foamy · Previsioni surf, wind & kite per la Puglia</p>
+  </footer>
 </div>
 </div>
-
-<footer>
-  <p>Foamy · Previsioni surf, wind & kite per la Puglia</p>
-</footer>
 
 <div id="drawerRoot"></div>
 
@@ -632,8 +637,6 @@ function applyThemeIcon() {
   if (btn1) btn1.innerHTML = icon;
   const btn2 = document.getElementById("drawerThemeToggle");
   if (btn2) btn2.innerHTML = icon;
-  const btn3 = document.getElementById("sideNavTheme");
-  if (btn3) btn3.innerHTML = icon;
 }
 function toggleTheme() {
   const next = getTheme() === "light" ? "dark" : "light";
@@ -1438,7 +1441,6 @@ document.getElementById("themeToggle").onclick = toggleTheme;
 document.getElementById("sideNavHome").onclick = () => { state.region = null; state.query = ""; state.favoritesOnly = false; document.getElementById("search").value = ""; render(); };
 document.getElementById("sideNavChart").onclick = () => { const el = document.getElementById("topSpotsHead"); if (el) el.scrollIntoView({ behavior: "smooth" }); };
 document.getElementById("sideNavFav").onclick = () => { state.region = FAVORITES_VIEW; render(); };
-document.getElementById("sideNavTheme").onclick = toggleTheme;
 applyThemeIcon();
 document.getElementById("resetFilters").onclick = () => { state.query = ""; state.favoritesOnly = false; document.getElementById("search").value = ""; render(); };
 document.getElementById("search").addEventListener("input", (e) => { state.query = e.target.value; render(); });
