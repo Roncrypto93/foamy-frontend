@@ -88,7 +88,7 @@
     * { animation-duration: .01ms !important; }
   }
 
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 64px; width: 100%; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 64px; width: 100%; flex: 1; min-width: 0; }
 
   .topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 20px 0 18px; border-bottom: 1px solid var(--border); }
   .brand { display: flex; align-items: center; gap: 12px; }
@@ -113,6 +113,35 @@
   .chip-btn { font-family: var(--font-data); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-dim); background: transparent; border: 1px solid var(--border); padding: 5px 9px; border-radius: 4px; cursor: pointer; transition: border-color .12s, color .12s; }
   .chip-btn:hover { border-color: var(--border-strong); color: var(--ink); }
   .chip-btn[aria-pressed="true"] { color: #00201d; background: var(--accent); border-color: var(--accent); }
+
+  /* Sidebar di icone a sinistra, solo per il livello home (scelta regione)
+     — nascosta non appena si entra in una regione, stesso trattamento di
+     home-hero/regionsHead/topSpotsHead (vedi render()). */
+  .app-shell { display: flex; align-items: stretch; flex: 1; }
+  .side-nav {
+    width: 64px; flex-shrink: 0; background: var(--surface);
+    border-right: 1px solid var(--border); flex-direction: column;
+    align-items: center; gap: 4px; padding: 18px 0;
+  }
+  .side-nav-item {
+    width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;
+    border-radius: 10px; color: var(--ink-dim); background: transparent; border: none; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .side-nav-item svg { width: 20px; height: 20px; }
+  .side-nav-item:hover { color: var(--ink-bright); background: var(--surface-2); }
+  .side-nav-item[aria-current="true"] { color: var(--accent); background: var(--accent-wash); }
+  .side-nav-item-label {
+    font-family: var(--font-data); font-size: 8.5px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .04em; margin-top: 3px;
+  }
+  .side-nav-item-wrap { display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .side-nav-spacer { flex: 1; }
+  .side-nav-theme {
+    width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: var(--surface-2); border: 1px solid var(--border-strong); color: var(--ink-bright); cursor: pointer;
+  }
+  .side-nav-theme:hover { border-color: var(--accent); color: var(--accent); }
 
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 20px; }
   .spot-card { text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; cursor: pointer; transition: border-color .15s, background .15s; }
@@ -169,8 +198,12 @@
   .region-card { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 22px 16px; cursor: pointer; transition: border-color .15s, background .15s; }
   .region-card:hover { border-color: var(--accent); background: var(--surface-2); }
   .region-map { width: 56px; height: 84px; flex-shrink: 0; }
-  .region-map path { fill: var(--accent-soft); transition: fill .15s; }
-  .region-card:hover .region-map path { fill: var(--accent); }
+  /* vector-effect: non-scaling-stroke mantiene lo spessore del contorno
+     costante in pixel a schermo per tutte le regioni, indipendentemente
+     dalla scala del viewBox di ciascuna mappa (variano molto: Puglia ~289
+     unità larga, Sicilia ~261, Emilia-Romagna ~287). */
+  .region-map path { fill: none; stroke: var(--accent-soft); stroke-width: 3.2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; transition: stroke .15s; }
+  .region-card:hover .region-map path { stroke: var(--accent); }
   .region-name { font-family: var(--font-display); font-weight: 700; font-size: 17px; color: var(--ink-bright); }
   .region-count { font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .08em; }
   .back-to-regions { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-data); font-size: 11px; font-weight: 600; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .06em; background: transparent; border: none; cursor: pointer; padding: 0; margin: 0 0 14px; }
@@ -363,13 +396,6 @@
      blocco. :last-of-type funziona perché .fc-panel compare sempre
      esattamente 2 volte per riga (swell, poi vento). */
   .fc-panel:last-of-type { background: var(--surface-2); }
-  /* "Chip" colorato dietro i valori vento (velocità e raffica), stessa
-     scala colori di WIND_COLOR_STOPS/windColor() già usata nel vecchio
-     grafico vento: testo scuro fisso perché la scala va dal bianco al
-     viola e un colore di testo unico non resterebbe leggibile su tutti
-     gli stop. */
-  .fc-wind-chip { display: inline-block; padding: 1px 7px; border-radius: 5px; border: 1px solid rgba(11,15,25,0.35); color: #0b0f19; }
-  .fc-wind-chip .fc-unit { color: rgba(11,15,25,0.62) !important; }
   .fc-num-row { display: flex; align-items: flex-end; gap: 16px; }
   .fc-num-group { display: flex; flex-direction: column; gap: 3px; }
   .fc-microlbl { font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-dim); }
@@ -415,7 +441,6 @@
     .fc-swell-split { gap: 8px; justify-content: flex-start; }
     .fc-energy { margin-left: 0; }
     .fc-wind-split { gap: 8px; justify-content: flex-start; }
-    .fc-wind-chip { padding: 0 4px; border-radius: 4px; }
     .fc-big { font-size: 15px; }
     .fc-big .fc-unit { font-size: 9.5px; }
     .fc-secondary { font-size: 13px; }
@@ -485,6 +510,10 @@
     .region-name { grid-row: 1; grid-column: 2; font-size: 15px; }
     .region-count { grid-row: 2; grid-column: 2; }
 
+    .side-nav { width: 52px; padding: 12px 0; }
+    .side-nav-item { width: 36px; height: 36px; }
+    .side-nav-item svg { width: 18px; height: 18px; }
+
     footer { padding: 14px; }
 
     /* Scheda spot (drawer): drawer-body e panel avevano ciascuno il proprio
@@ -507,6 +536,29 @@
 </head>
 <body>
 
+<div class="app-shell">
+  <nav class="side-nav" id="sideNav" aria-label="Navigazione principale">
+    <div class="side-nav-item-wrap">
+      <button class="side-nav-item" id="sideNavHome" aria-current="true" title="Regioni">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.3"/></svg>
+      </button>
+      <span class="side-nav-item-label">Regioni</span>
+    </div>
+    <div class="side-nav-item-wrap">
+      <button class="side-nav-item" id="sideNavChart" title="Chart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>
+      </button>
+      <span class="side-nav-item-label">Chart</span>
+    </div>
+    <div class="side-nav-item-wrap">
+      <button class="side-nav-item" id="sideNavFav" title="Preferiti">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.2 1.1 6-5.3-3-5.3 3 1.1-6-4.4-4.2 6-.7z"/></svg>
+      </button>
+      <span class="side-nav-item-label">Preferiti</span>
+    </div>
+    <div class="side-nav-spacer"></div>
+    <button class="side-nav-theme" id="sideNavTheme" aria-label="Cambia tema chiaro/scuro" title="Cambia tema chiaro/scuro"></button>
+  </nav>
 <div class="wrap">
   <header class="topbar">
     <div class="brand">
@@ -574,6 +626,7 @@
     </div>
   </main>
 </div>
+</div>
 
 <footer>
   <p>Foamy · Previsioni surf, wind & kite per la Puglia</p>
@@ -604,6 +657,8 @@ function applyThemeIcon() {
   if (btn1) btn1.innerHTML = icon;
   const btn2 = document.getElementById("drawerThemeToggle");
   if (btn2) btn2.innerHTML = icon;
+  const btn3 = document.getElementById("sideNavTheme");
+  if (btn3) btn3.innerHTML = icon;
 }
 function toggleTheme() {
   const next = getTheme() === "light" ? "dark" : "light";
@@ -722,6 +777,19 @@ function surfAngularDiff(a, b) {
   if (diff > 180) diff -= 360;
   if (diff < -180) diff += 360;
   return diff;
+}
+// Etichetta vento relativo alla costa (Forecast Mare, colonna Vento):
+// stessa convenzione di surfWindZoneEffect (coastOrientationDeg = direzione
+// da cui soffia il vento onshore), ma qui è solo descrittiva, indipendente
+// da velocità/periodo. d=0 vento puramente offshore, d=180 puramente onshore.
+function classifyWindShore(windDirectionDeg, coastOrientationDeg) {
+  if (windDirectionDeg == null || coastOrientationDeg == null) return null;
+  const offshoreDeg = (coastOrientationDeg + 180) % 360;
+  const d = Math.abs(surfAngularDiff(windDirectionDeg, offshoreDeg));
+  if (d <= 45) return "Offshore";
+  if (d <= 90) return "Cross-offshore";
+  if (d <= 135) return "Cross-onshore";
+  return "Onshore";
 }
 function surfWindZoneEffect(windDirectionDeg, windSpeedKn, coastOrientationDeg) {
   if (windSpeedKn < 5) return "bump";
@@ -1129,10 +1197,13 @@ function spotRegion(spot) { return spot.region || "Puglia"; }
 // usano una sagoma "stivale d'Italia" generica come segnaposto, da
 // sostituire con la stessa tecnica (confine dell'intera regione, non
 // solo la costa) quando si aggiunge quella regione.
+// Tracciati derivati dalle mappe di localizzazione reali di Wikimedia
+// Commons (Apulia/Sicily/Emilia-Romagna in Italy.svg): contorno geografico
+// vero, semplificato a ~55-65 punti, non più punti "a mano libera".
 const REGION_MAPS = {
-  "Puglia": { viewBox: "0 0 100 156", d: "M85,12 L55,4 L40,18 L48,30 L56,50 L52,72 L56,92 L50,112 L52,130 L42,150 L32,135 L26,115 L38,98 L24,82 L30,62 L18,45 L26,28 Z" },
-  "Sicilia": { viewBox: "0 0 286 178", d: "M285,1 L248,0 L141,26 L79,4 L41,24 L27,10 L8,28 L0,52 L15,69 L59,84 L98,109 L160,133 L179,158 L240,177 L253,133 L235,86 L253,47 Z" },
-  "Emilia-Romagna": { viewBox: "0 0 267 165", d: "M25,5 L101,20 L178,29 L239,32 L229,52 L230,72 L236,93 L240,100 L253,115 L267,127 L244,139 L229,164 L198,147 L151,108 L48,69 L0,37 Z" },
+  "Puglia": { viewBox: "0 0 289 232", d: "M16,72 L12,61 L8,51 L0,35 L9,34 L18,26 L13,18 L19,3 L46,4 L30,6 L38,7 L46,4 L69,3 L89,0 L99,6 L101,12 L95,23 L80,33 L91,57 L109,66 L120,72 L132,78 L148,85 L156,87 L175,96 L193,109 L207,122 L230,132 L243,140 L250,146 L261,158 L279,176 L287,193 L281,207 L278,227 L268,226 L254,219 L247,209 L247,199 L240,185 L234,179 L214,177 L198,173 L187,167 L186,160 L176,153 L154,165 L145,158 L143,140 L143,132 L132,127 L129,131 L119,133 L104,116 L88,108 L88,99 L76,90 L70,89 L61,92 L50,92 L37,90 L24,87 L25,78 L21,72 Z" },
+  "Sicilia": { viewBox: "0 0 261 178", d: "M0,54 L3,47 L5,34 L10,25 L21,20 L24,11 L29,17 L36,26 L52,22 L55,11 L66,10 L73,9 L77,20 L90,23 L102,32 L116,32 L132,29 L145,31 L165,28 L187,14 L203,13 L217,18 L226,4 L234,9 L258,3 L253,11 L242,31 L231,49 L224,60 L222,77 L215,86 L215,103 L224,108 L225,116 L223,120 L225,123 L231,131 L233,137 L228,141 L216,155 L217,168 L215,176 L204,172 L191,171 L182,169 L164,159 L150,135 L128,128 L115,127 L99,118 L89,109 L79,105 L65,93 L54,85 L43,79 L19,79 L7,68 L0,55 Z" },
+  "Emilia-Romagna": { viewBox: "0 0 287 150", d: "M1,55 L3,47 L8,41 L9,27 L13,11 L27,5 L34,1 L42,8 L49,6 L56,5 L58,2 L65,2 L76,10 L93,17 L107,24 L122,16 L135,23 L152,18 L168,20 L179,21 L193,26 L204,20 L218,16 L234,18 L244,22 L249,27 L251,31 L245,44 L248,56 L253,87 L272,113 L285,128 L278,138 L271,135 L266,127 L264,123 L258,130 L248,144 L237,147 L219,143 L202,134 L198,124 L204,112 L197,109 L191,103 L181,98 L170,101 L164,108 L148,112 L144,108 L133,111 L115,105 L103,101 L88,91 L76,86 L63,76 L50,71 L39,83 L28,75 L19,75 L21,61 L7,56 Z" },
   "_default": { viewBox: "0 0 100 156", d: "M60,4 C72,4 70,16 78,22 C86,28 84,40 76,46 C82,54 80,66 70,70 C74,80 68,92 58,94 C62,104 56,116 46,116 C48,126 40,136 30,132 C24,140 12,138 10,128 C4,124 6,112 14,108 C8,100 12,88 22,86 C16,76 22,64 32,62 C28,50 36,38 48,38 C44,26 52,14 60,4 Z" },
 };
 function regionMapSVG(name) {
@@ -1321,6 +1392,7 @@ function render() {
   const filtersBar = document.getElementById("filtersBar");
   const backBtn = document.getElementById("backToRegions");
   const favShortcut = document.getElementById("favShortcut");
+  const sideNav = document.getElementById("sideNav");
 
   if (!state.region) {
     // Livello 1: scelta della regione — niente ricerca/preferiti qui
@@ -1337,6 +1409,7 @@ function render() {
     filtersBar.style.display = "none";
     backBtn.style.display = "none";
     favShortcut.style.display = "inline-block";
+    sideNav.style.display = "flex";
     regionGrid.innerHTML = "";
     const counts = new Map();
     SPOTS.forEach(s => { const r = spotRegion(s); counts.set(r, (counts.get(r) || 0) + 1); });
@@ -1363,6 +1436,7 @@ function render() {
   filtersBar.style.display = "flex";
   backBtn.style.display = "inline-flex";
   favShortcut.style.display = "none";
+  sideNav.style.display = "none";
   document.getElementById("favBar").style.display = isFavView ? "none" : "flex";
   if (!isFavView) renderChips();
   grid.innerHTML = "";
@@ -1386,6 +1460,10 @@ function render() {
 document.getElementById("backToRegions").onclick = () => { state.region = null; state.query = ""; state.favoritesOnly = false; document.getElementById("search").value = ""; render(); };
 document.getElementById("favShortcut").onclick = () => { state.region = FAVORITES_VIEW; render(); };
 document.getElementById("themeToggle").onclick = toggleTheme;
+document.getElementById("sideNavHome").onclick = () => { state.region = null; state.query = ""; state.favoritesOnly = false; document.getElementById("search").value = ""; render(); };
+document.getElementById("sideNavChart").onclick = () => { const el = document.getElementById("topSpotsHead"); if (el) el.scrollIntoView({ behavior: "smooth" }); };
+document.getElementById("sideNavFav").onclick = () => { state.region = FAVORITES_VIEW; render(); };
+document.getElementById("sideNavTheme").onclick = toggleTheme;
 applyThemeIcon();
 document.getElementById("resetFilters").onclick = () => { state.query = ""; state.favoritesOnly = false; document.getElementById("search").value = ""; render(); };
 document.getElementById("search").addEventListener("input", (e) => { state.query = e.target.value; render(); });
@@ -1666,7 +1744,7 @@ function forecastSectionHTML() {
   `;
 }
 
-function renderForecastTable(chart, windChart) {
+function renderForecastTable(chart, windChart, spot) {
   const list = document.getElementById("fcList");
   const n = Math.min(chart.length, windChart.length);
   if (!n) {
@@ -1696,6 +1774,7 @@ function renderForecastTable(chart, windChart) {
       const hour = new Date(p.time).getHours();
       const waveDir = p.waveDirectionDeg;
       const windDir = w.windDirectionDeg;
+      const windShore = classifyWindShore(windDir, spot?.coastOrientationDeg);
 
       html += `<div class="fc-row" style="--stripe:${stripe}">
         <div class="fc-hour">
@@ -1727,13 +1806,13 @@ function renderForecastTable(chart, windChart) {
         <div class="fc-panel">
           <div class="fc-wind-split">
             <div class="fc-wind-main">
-              <div class="fc-big tabular">${w.windSpeedKn != null ? `<span class="fc-wind-chip" style="background:${windColor(w.windSpeedKn)}">${Math.round(w.windSpeedKn)}<span class="fc-unit">kn</span></span>` : "—"}</div>
-              <div class="fc-gust-line">Raffica ${w.windGustsKn != null ? `<b class="tabular fc-wind-chip" style="background:${windColor(w.windGustsKn)}">${Math.round(w.windGustsKn)}kn</b>` : `<b class="tabular">—</b>`}</div>
+              <div class="fc-big tabular">${w.windSpeedKn != null ? Math.round(w.windSpeedKn) : "—"}<span class="fc-unit">kn</span></div>
+              <div class="fc-gust-line">Raffica ${w.windGustsKn != null ? `<b class="tabular">${Math.round(w.windGustsKn)}kn</b>` : `<b class="tabular">—</b>`}</div>
             </div>
             <div class="fc-dir-block" style="color:var(--ink-bright)">
               ${windDir != null ? directionArrowSVG(windDir + 180, 22) : ""}
               <div class="fc-dir-cardinal">${windDir != null ? cardinal16(windDir) : "—"}</div>
-              ${windDir != null ? `<div class="fc-dir-name">${classicalName(windDir)}</div>` : ""}
+              ${windShore ? `<div class="fc-dir-name">${windShore}</div>` : ""}
             </div>
           </div>
         </div>
@@ -1825,7 +1904,7 @@ function openDrawer(spot) {
           if (token !== openToken) return;
           document.getElementById("threeDaySection").innerHTML = weekSummaryHTML() + forecastSectionHTML();
           renderWeekSummary(chart || [], windChart || []);
-          renderForecastTable(chart || [], windChart || []);
+          renderForecastTable(chart || [], windChart || [], spot);
         })
         .catch(() => {
           if (token !== openToken) return;
