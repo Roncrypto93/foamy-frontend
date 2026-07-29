@@ -30,6 +30,12 @@
     --accent-wash: rgba(79,209,197,0.10);
     --alert: #e0524f;
     --sun: #e0b84f;
+    /* Colore di brand fisso (non cambia tra tema chiaro/scuro, a differenza
+       di --accent che si sposta apposta per restare leggibile/coerente su
+       entrambi gli sfondi) — solo per icone e testo di marchio dove si
+       vuole la stessa identica tinta ovunque, non per bordi/hover/chip
+       funzionali che restano su --accent. */
+    --brand: #1fb8a6;
     --font-display: 'Archivo', ui-sans-serif, system-ui, sans-serif;
     /* Un solo font in tutto il layout (richiesto esplicitamente): --font-data
        punta allo stesso stack di --font-display invece che a IBM Plex Mono.
@@ -106,7 +112,7 @@
   .drawer-brand-mark { width: 40px; height: 40px; display: block; border-radius: 50%; flex-shrink: 0; }
   .brand-text { display: flex; flex-direction: column; line-height: 1; gap: 4px; }
   .brand-name { font-family: 'Oswald', var(--font-display); font-weight: 700; font-size: 22px; color: var(--ink-bright); letter-spacing: -0.01em; text-transform: uppercase; }
-  .brand-tag { font-family: var(--font-data); font-weight: 500; font-size: 10.5px; color: var(--accent); text-transform: uppercase; letter-spacing: .16em; }
+  .brand-tag { font-family: var(--font-data); font-weight: 500; font-size: 10.5px; color: var(--brand); text-transform: uppercase; letter-spacing: .16em; }
 
   .topbar-actions { display: flex; align-items: center; gap: 12px; }
   /* Un solo pulsante per passare da scuro a chiaro e viceversa — mostra
@@ -143,8 +149,8 @@
     transition: background .15s, color .15s;
   }
   .side-nav-item svg { width: 20px; height: 20px; }
-  .side-nav-item:hover { color: var(--ink-bright); background: var(--surface-2); }
-  .side-nav-item[aria-current="true"] { color: var(--accent); background: var(--accent-wash); }
+  .side-nav-item:hover { color: var(--brand); background: var(--surface-2); }
+  .side-nav-item[aria-current="true"] { color: var(--brand); background: var(--accent-wash); }
   .side-nav-item-label {
     font-family: var(--font-data); font-size: 8.5px; font-weight: 600; text-transform: uppercase;
     letter-spacing: .04em; margin-top: 3px;
@@ -181,7 +187,7 @@
      nascosto non appena si entra in una regione (vedi render()). */
   .home-hero { padding: 40px 0 4px; }
   .home-hero-title { font-family: var(--font-display); font-weight: 900; font-size: 38px; color: var(--ink-bright); margin: 0; line-height: 1.1; letter-spacing: -.01em; text-wrap: balance; max-width: 640px; }
-  .home-hero-accent { color: var(--accent); }
+  .home-hero-accent { color: var(--brand); }
 
   /* Separatore sotto il testo hero: non più una linea di sfondo dietro il
      testo, ma una striscia a sé — un motivo a piastrelle (SVG <pattern>,
