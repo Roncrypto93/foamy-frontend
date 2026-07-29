@@ -1170,11 +1170,11 @@ function spotRegion(spot) { return spot.region || "Puglia"; }
 // Toscana), Passo della Cisa — fino a Bobbio (angolo O, confine Liguria/
 // Piemonte), poi di nuovo a Piacenza. Le regioni non ancora mappate
 // usano una sagoma "stivale d'Italia" generica come segnaposto, da
-// sostituire con la stessa tecnica (confine dell'intera regione, non
-// solo la costa) quando si aggiunge quella regione.
+// sostituire con la stessa tecnica quando si aggiunge quella regione.
 // Tracciati derivati dalle mappe di localizzazione reali di Wikimedia
-// Commons (Apulia/Sicily/Emilia-Romagna in Italy.svg): contorno geografico
-// vero, semplificato a ~55-65 punti, non più punti "a mano libera".
+// Commons (Apulia/Sicily/Emilia-Romagna/Liguria/Sardinia/Tuscany in
+// Italy.svg): contorno geografico vero, semplificato a ~55-65 punti, non
+// più punti "a mano libera".
 const REGION_MAPS = {
   "Puglia": { viewBox: "0 0 289 232", d: "M16,72 L12,61 L8,51 L0,35 L9,34 L18,26 L13,18 L19,3 L46,4 L30,6 L38,7 L46,4 L69,3 L89,0 L99,6 L101,12 L95,23 L80,33 L91,57 L109,66 L120,72 L132,78 L148,85 L156,87 L175,96 L193,109 L207,122 L230,132 L243,140 L250,146 L261,158 L279,176 L287,193 L281,207 L278,227 L268,226 L254,219 L247,209 L247,199 L240,185 L234,179 L214,177 L198,173 L187,167 L186,160 L176,153 L154,165 L145,158 L143,140 L143,132 L132,127 L129,131 L119,133 L104,116 L88,108 L88,99 L76,90 L70,89 L61,92 L50,92 L37,90 L24,87 L25,78 L21,72 Z" },
   "Sicilia": { viewBox: "0 0 261 178", d: "M0,54 L3,47 L5,34 L10,25 L21,20 L24,11 L29,17 L36,26 L52,22 L55,11 L66,10 L73,9 L77,20 L90,23 L102,32 L116,32 L132,29 L145,31 L165,28 L187,14 L203,13 L217,18 L226,4 L234,9 L258,3 L253,11 L242,31 L231,49 L224,60 L222,77 L215,86 L215,103 L224,108 L225,116 L223,120 L225,123 L231,131 L233,137 L228,141 L216,155 L217,168 L215,176 L204,172 L191,171 L182,169 L164,159 L150,135 L128,128 L115,127 L99,118 L89,109 L79,105 L65,93 L54,85 L43,79 L19,79 L7,68 L0,55 Z" },
