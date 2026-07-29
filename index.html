@@ -1944,7 +1944,7 @@ function openDrawer(spot) {
 render();
 // Puglia ed Emilia-Romagna per ora: la Sicilia (già presente nei dati del
 // backend) resta tolta temporaneamente dal frontend, ci si lavora più avanti.
-const VISIBLE_REGIONS = ["Puglia", "Emilia-Romagna", "Liguria", "Sardegna", "Toscana"];
+const VISIBLE_REGIONS = ["Puglia", "Emilia-Romagna", "Liguria", "Sardegna", "Toscana", "Sicilia"];
 loadSpots().then((spots) => { SPOTS = spots.filter((s) => VISIBLE_REGIONS.includes(spotRegion(s))); render(); });
 
 </script>
