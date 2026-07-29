@@ -125,8 +125,13 @@
   /* Banner "naviga rapido" — 3 azioni (regioni/top spot/preferiti), stesso
      trattamento visivo della griglia regioni (region-card/region-grid),
      solo per il livello home. Icona generica invece della sagoma regione. */
-  .quick-action-icon { width: 40px; height: 40px; color: var(--brand); flex-shrink: 0; }
+  /* Icona piccola a sinistra invece del trattamento a icona grande e
+     centrata delle region-card — stesso bordo/hover/sfondo (riusa
+     .region-card), solo il layout interno cambia in riga orizzontale. */
+  .region-card.quick-action-card { flex-direction: row; align-items: center; text-align: left; gap: 14px; padding: 16px; }
+  .quick-action-icon { width: 22px; height: 22px; color: var(--brand); flex-shrink: 0; }
   .quick-action-icon svg { width: 100%; height: 100%; }
+  .quick-action-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 20px; }
   .spot-card { text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; cursor: pointer; transition: border-color .15s, background .15s; }
@@ -533,20 +538,26 @@
       <h1 class="home-hero-title">Le previsioni più accurate del Mediterraneo, con webcam integrate. <span class="home-hero-accent">Let's get foamy!</span></h1>
     </section>
     <div id="quickActionsGrid" class="region-grid">
-      <button class="region-card" id="qaRegioni">
+      <button class="region-card quick-action-card" id="qaRegioni">
         <span class="quick-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.3"/></svg></span>
-        <span class="region-name">Regioni</span>
-        <span class="region-count">Torna alle regioni</span>
+        <span class="quick-action-text">
+          <span class="region-name">Regioni</span>
+          <span class="region-count">Torna alle regioni</span>
+        </span>
       </button>
-      <button class="region-card" id="qaChart">
+      <button class="region-card quick-action-card" id="qaChart">
         <span class="quick-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg></span>
-        <span class="region-name">Chart</span>
-        <span class="region-count">I migliori spot del momento</span>
+        <span class="quick-action-text">
+          <span class="region-name">Chart</span>
+          <span class="region-count">I migliori spot del momento</span>
+        </span>
       </button>
-      <button class="region-card" id="qaFav">
+      <button class="region-card quick-action-card" id="qaFav">
         <span class="quick-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.6 5.6 6 .7-4.4 4.2 1.1 6-5.3-3-5.3 3 1.1-6-4.4-4.2 6-.7z"/></svg></span>
-        <span class="region-name">Preferiti</span>
-        <span class="region-count">I tuoi spot salvati</span>
+        <span class="quick-action-text">
+          <span class="region-name">Preferiti</span>
+          <span class="region-count">I tuoi spot salvati</span>
+        </span>
       </button>
     </div>
     <button class="back-to-regions" id="backToRegions" style="display:none">← Tutte le regioni</button>
