@@ -34,10 +34,13 @@
        di --accent che si sposta apposta per restare leggibile/coerente su
        entrambi gli sfondi) — solo per icone e testo di marchio dove si
        vuole la stessa identica tinta ovunque, non per bordi/hover/chip
-       funzionali che restano su --accent. Turchese scelto scurendo
-       #1fb8a6 (contrasto 2.48:1 su bianco, sotto la soglia minima 3:1)
-       fino a un punto di equilibrio: 4.27:1 su bianco, 4.91:1 su nero. */
-    --brand: #0c8a76;
+       funzionali che restano su --accent. "Turchese onda" originale,
+       2026-07-30: scelto di nuovo dopo aver provato varianti più scure per
+       il contrasto (il risultato si leggeva come verde, non più turchese) —
+       tenuto acceso di proposito, sapendo che sul tema chiaro il contrasto
+       è basso (2.31:1 su #f3f8f7, 2.48:1 su bianco puro, sotto la soglia
+       minima 3:1). Nel tema scuro è invece ottimo: 8.47:1 su nero. */
+    --brand: #1fb8a6;
     --font-display: 'Archivo', ui-sans-serif, system-ui, sans-serif;
     /* Un solo font in tutto il layout (richiesto esplicitamente): --font-data
        punta allo stesso stack di --font-display invece che a IBM Plex Mono.
@@ -177,6 +180,11 @@
      stesso colore in entrambi i temi: è un dato, non un colore di
      interfaccia — grigio neutro finché la fetch live non risponde. */
   .rating-bar { width: 4px; height: 20px; align-self: center; border-radius: 2px; background: var(--border-strong); flex-shrink: 0; }
+  /* Etichetta testuale accanto alla barra: prima il livello si leggeva solo
+     nel title della barra (tooltip al hover), invisibile su mobile/touch
+     dove l'hover non esiste — ora è sempre visibile, come il chip di "I
+     migliori spot del momento". */
+  .rating-label { font-family: var(--font-data); font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-dim); align-self: center; flex-shrink: 0; }
   .spot-card-name { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--ink-bright); line-height: 1.25; }
   .spot-card-badges { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-top: 2px; }
   .webcam-badge { display: inline-flex; color: var(--brand); }
@@ -1239,16 +1247,19 @@ function renderCardLive(card, f) {
   // onda) — la barra resta grigia ma il tooltip non deve più dire "non
   // ancora nota" una volta che la fetch è comunque tornata.
   const bar = card.querySelector(".rating-bar");
+  const label = card.querySelector(".rating-label");
   const level = f.surfRating?.rating;
   if (bar && level && SURF_RATING_COLORS[level]) {
     bar.style.background = SURF_RATING_COLORS[level];
     bar.title = level;
+    if (label) { label.textContent = level; label.style.color = SURF_RATING_COLORS[level]; }
   } else if (bar) {
     // Nessun punteggio noto (spot senza onda, o dato mancante): stesso
     // rosso di Bad/Flat invece di un grigio neutro — l'assenza di dati
     // buoni si legge come "non conviene", non come uno stato a parte.
     bar.style.background = SURF_RATING_COLORS.Bad;
     bar.title = "Condizione non disponibile per questo spot";
+    if (label) { label.textContent = "N/D"; label.style.color = SURF_RATING_COLORS.Bad; }
   }
 }
 function loadCardLiveData(card, spot) {
@@ -1274,7 +1285,7 @@ function spotCard(spot) {
   card.innerHTML = `
     <div class="spot-card-head">
       <span class="spot-card-name-row">
-        ${hasWaveRating ? `<span class="rating-bar" title="Condizione non ancora nota"></span>` : ""}
+        ${hasWaveRating ? `<span class="rating-bar" title="Condizione non ancora nota"></span><span class="rating-label">···</span>` : ""}
         <span class="spot-card-name">${spot.name}</span>
       </span>
       <span class="spot-card-badges">
