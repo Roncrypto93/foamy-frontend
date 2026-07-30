@@ -491,8 +491,8 @@
   .desc-text { margin-top: 4px; }
 
   .webcam-provider-name { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--ink-bright); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .webcam-btn { font-family: var(--font-data); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; background: var(--accent); color: #00201d; padding: 7px 14px; border-radius: 20px; text-decoration: none; white-space: nowrap; flex-shrink: 0; }
-  .webcam-btn:hover { background: var(--accent-soft); }
+  .webcam-btn { font-family: var(--font-data); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; background: var(--brand); color: #eafff9; padding: 7px 14px; border-radius: 20px; text-decoration: none; white-space: nowrap; flex-shrink: 0; }
+  .webcam-btn:hover { opacity: .88; }
 
   /* Coppia di banner speculari (webcam + posizione) sotto la sezione Live:
      stesse dimensioni/card, larghezza complessiva pari alla sezione Live
@@ -508,7 +508,15 @@
     background-size: cover; background-position: center;
   }
   .side-banner-media video { width: 100%; height: 100%; object-fit: cover; display: block; background: #000; }
-  .side-banner-media.is-placeholder { display: flex; align-items: center; justify-content: center; color: var(--ink-dim); }
+  .side-banner-media.is-placeholder { background: var(--brand); display: flex; align-items: center; justify-content: center; }
+  .side-banner-placeholder-logo { width: 80px; height: 80px; border-radius: 14px; opacity: .95; display: block; }
+  .side-banner-placeholder-badge {
+    position: absolute; left: 50%; top: 50%; width: 38px; height: 38px;
+    margin-left: 19px; margin-top: 16px;
+    background: #fff; border-radius: 50%; color: #0b0f19;
+    box-shadow: 0 3px 8px rgba(0,0,0,.4);
+    display: flex; align-items: center; justify-content: center;
+  }
   .side-banner-live-tag {
     position: absolute; top: 10px; left: 10px; display: flex; align-items: center; gap: 5px;
     background: rgba(0,0,0,.55); color: #fff; font-family: var(--font-data); font-size: 10px;
@@ -1861,16 +1869,26 @@ const THERMOMETER_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fi
 // anteprima live in loop muto, grande quanto la card, esattamente come il
 // banner posizione mostra la mappa satellitare. La maggior parte degli spot
 // però ha solo un link esterno (SkylineWebcams, Eolo, ecc. — spesso bloccano
-// l'embed), quindi in quel caso la card mostra un'icona placeholder invece
-// di un'immagine finta: nessuno snapshot reale è disponibile senza uno
-// scraping dedicato per provider, non fatto qui.
+// l'embed), quindi in quel caso la card mostra il logo Foamy su sfondo
+// turchese brand con un badge telecamera sovrapposto, invece di un'immagine
+// finta: nessuno snapshot reale è disponibile senza uno scraping dedicato
+// per provider, non fatto qui.
+function webcamPlaceholderMediaHTML() {
+  const brandMarkSrc = document.querySelector(".brand-mark")?.src || "";
+  const badgeIcon = CAMERA_ICON_SVG.replace('width="14" height="14"', 'width="20" height="20"');
+  return `
+    <div class="side-banner-media is-placeholder">
+      <img class="side-banner-placeholder-logo" src="${brandMarkSrc}" alt="">
+      <span class="side-banner-placeholder-badge">${badgeIcon}</span>
+    </div>
+  `;
+}
 function webcamSideBannerHTML(spot) {
   const cam = spot.webcam_banner;
-  const bigCameraIcon = CAMERA_ICON_SVG.replace('width="14" height="14"', 'width="34" height="34"');
   if (!cam) {
     return `
       <div class="side-banner">
-        <div class="side-banner-media is-placeholder">${bigCameraIcon}</div>
+        ${webcamPlaceholderMediaHTML()}
         <div class="side-banner-footer">
           <div class="side-banner-footer-text">
             <p class="webcam-provider-name">Webcam</p>
@@ -1886,7 +1904,7 @@ function webcamSideBannerHTML(spot) {
         <video src="${cam.url}" autoplay muted loop playsinline></video>
         <span class="side-banner-live-tag"><span class="side-banner-live-dot"></span>Live</span>
       </div>`
-    : `<div class="side-banner-media is-placeholder">${bigCameraIcon}</div>`;
+    : webcamPlaceholderMediaHTML();
   return `
     <a class="side-banner" href="${cam.url}" target="_blank" rel="noopener noreferrer" aria-label="Apri la webcam di ${spot.name}">
       ${media}
