@@ -490,24 +490,45 @@
   .val-text, .desc-text { font-size: 13px; color: var(--ink); line-height: 1.5; margin: 0; }
   .desc-text { margin-top: 4px; }
 
-  .webcam-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  .webcam-provider-name { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--ink-bright); }
-  .webcam-btn { font-family: var(--font-data); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; background: var(--accent); color: #00201d; padding: 7px 14px; border-radius: 20px; text-decoration: none; white-space: nowrap; }
+  .webcam-provider-name { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--ink-bright); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .webcam-btn { font-family: var(--font-data); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; background: var(--accent); color: #00201d; padding: 7px 14px; border-radius: 20px; text-decoration: none; white-space: nowrap; flex-shrink: 0; }
   .webcam-btn:hover { background: var(--accent-soft); }
 
-  .location-banner {
-    position: relative; display: block; width: 84px; height: 84px; flex-shrink: 0;
-    border-radius: 10px; overflow: hidden; border: 1px solid var(--border);
-    background-color: var(--surface-2); background-size: cover; background-position: center;
+  /* Coppia di banner speculari (webcam + posizione) sotto la sezione Live:
+     stesse dimensioni/card, larghezza complessiva pari alla sezione Live
+     sopra di loro grazie a .drawer-body che già allinea tutti i figli. */
+  .live-side-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .side-banner {
+    display: flex; flex-direction: column; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+    text-decoration: none; min-width: 0;
   }
+  .side-banner-media {
+    position: relative; height: 170px; flex-shrink: 0; background-color: var(--surface-2);
+    background-size: cover; background-position: center;
+  }
+  .side-banner-media video { width: 100%; height: 100%; object-fit: cover; display: block; background: #000; }
+  .side-banner-media.is-placeholder { display: flex; align-items: center; justify-content: center; color: var(--ink-dim); }
+  .side-banner-live-tag {
+    position: absolute; top: 10px; left: 10px; display: flex; align-items: center; gap: 5px;
+    background: rgba(0,0,0,.55); color: #fff; font-family: var(--font-data); font-size: 10px;
+    text-transform: uppercase; letter-spacing: .06em; font-weight: 700; padding: 4px 9px; border-radius: 20px;
+  }
+  .side-banner-live-dot { width: 6px; height: 6px; border-radius: 50%; background: #e0524f; flex-shrink: 0; }
   .location-banner-pin {
-    position: absolute; left: 50%; top: 50%; width: 22px; height: 22px;
-    margin-left: -11px; margin-top: -22px;
+    position: absolute; left: 50%; top: 50%; width: 34px; height: 34px;
+    margin-left: -17px; margin-top: -34px;
     background: #fff; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
-    box-shadow: 0 2px 6px rgba(0,0,0,.4);
+    box-shadow: 0 3px 8px rgba(0,0,0,.4);
     display: flex; align-items: center; justify-content: center;
   }
-  .location-banner-pin img { width: 13px; height: 13px; border-radius: 50%; transform: rotate(45deg); display: block; }
+  .location-banner-pin img { width: 20px; height: 20px; border-radius: 50%; transform: rotate(45deg); display: block; }
+  .side-banner-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; }
+  .side-banner-footer-text { min-width: 0; }
+  .side-banner-note { font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); margin: 2px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 640px) {
+    .live-side-grid { grid-template-columns: 1fr; }
+  }
 
   .footer-ts { font-family: var(--font-data); font-size: 10.5px; color: var(--ink-dim); text-align: center; }
 
@@ -1541,8 +1562,6 @@ function currentConditionsHTML(f, spot) {
           </div>
         </div>
       </div>
-      ${webcamLiveHTML(spot)}
-      ${locationBannerHTML(spot)}
     </section>
   `;
 }
@@ -1837,31 +1856,53 @@ const THERMOMETER_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fi
 // Webcam ora dentro il pannello Live (sotto vento/swell/marea), non più
 // come sezione separata in fondo alla pagina — stesso trattamento a
 // divisore (bordo superiore) usato per lo swell/marea qui sopra.
-function webcamLiveHTML(spot) {
+// Card webcam per la coppia di banner speculari sotto la sezione Live.
+// Dove esiste un video diretto (embed_type "video_mp4") lo mostriamo come
+// anteprima live in loop muto, grande quanto la card, esattamente come il
+// banner posizione mostra la mappa satellitare. La maggior parte degli spot
+// però ha solo un link esterno (SkylineWebcams, Eolo, ecc. — spesso bloccano
+// l'embed), quindi in quel caso la card mostra un'icona placeholder invece
+// di un'immagine finta: nessuno snapshot reale è disponibile senza uno
+// scraping dedicato per provider, non fatto qui.
+function webcamSideBannerHTML(spot) {
   const cam = spot.webcam_banner;
-  const body = !cam
-    ? `<p class="footer-ts" style="text-align:left;padding:2px 0">Nessuna webcam attiva e affidabile per questo spot al momento.</p>`
-    : (() => {
-        const isVideo = cam.embed_type === "video_mp4";
-        return `
-          <div class="webcam-row">
-            <p class="webcam-provider-name" style="margin:0">${cam.provider}</p>
-            ${isVideo ? "" : `<a href="${cam.url}" target="_blank" rel="noopener noreferrer" class="webcam-btn">Apri →</a>`}
+  const bigCameraIcon = CAMERA_ICON_SVG.replace('width="14" height="14"', 'width="34" height="34"');
+  if (!cam) {
+    return `
+      <div class="side-banner">
+        <div class="side-banner-media is-placeholder">${bigCameraIcon}</div>
+        <div class="side-banner-footer">
+          <div class="side-banner-footer-text">
+            <p class="webcam-provider-name">Webcam</p>
+            <p class="side-banner-note">Nessuna webcam attiva per questo spot</p>
           </div>
-          ${isVideo ? `<video class="webcam-video" src="${cam.url}" controls preload="none" playsinline style="width:100%;border-radius:8px;margin-top:12px;background:#000"></video>` : ""}
-          ${cam.note ? `<p class="footer-ts" style="text-align:left;padding-top:10px;margin:0">${cam.note}</p>` : ""}
-        `;
-      })();
+        </div>
+      </div>
+    `;
+  }
+  const isVideo = cam.embed_type === "video_mp4";
+  const media = isVideo
+    ? `<div class="side-banner-media">
+        <video src="${cam.url}" autoplay muted loop playsinline></video>
+        <span class="side-banner-live-tag"><span class="side-banner-live-dot"></span>Live</span>
+      </div>`
+    : `<div class="side-banner-media is-placeholder">${bigCameraIcon}</div>`;
   return `
-    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
-      <p class="panel-label" style="margin-bottom:8px">Webcam live</p>
-      ${body}
-    </div>
+    <a class="side-banner" href="${cam.url}" target="_blank" rel="noopener noreferrer" aria-label="Apri la webcam di ${spot.name}">
+      ${media}
+      <div class="side-banner-footer">
+        <div class="side-banner-footer-text">
+          <p class="webcam-provider-name">${cam.provider}</p>
+          ${cam.note ? `<p class="side-banner-note">${cam.note}</p>` : ""}
+        </div>
+        <span class="webcam-btn">Apri →</span>
+      </div>
+    </a>
   `;
 }
 
 // Immagine satellitare statica gratuita (Esri World Imagery, nessuna API key)
-// centrata sullo spot, usata solo come sfondo decorativo del banner posizione.
+// centrata sullo spot, usata come sfondo del banner posizione.
 function staticMapImageUrl(lat, lon, widthPx = 640, heightPx = 220) {
   const halfHeightDeg = 0.9 / 111.32; // ~1.8km di altezza inquadrata
   const halfWidthDeg = (halfHeightDeg * (widthPx / heightPx)) / Math.cos((lat * Math.PI) / 180);
@@ -1869,21 +1910,34 @@ function staticMapImageUrl(lat, lon, widthPx = 640, heightPx = 220) {
   return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${bbox}&bboxSR=4326&size=${widthPx},${heightPx}&imageSR=4326&format=png32&f=image`;
 }
 
-function locationBannerHTML(spot) {
-  if (spot.lat == null || spot.lon == null) return "";
+function locationSideBannerHTML(spot) {
+  if (spot.lat == null || spot.lon == null) return `<div class="side-banner"></div>`;
   const brandMarkSrc = document.querySelector(".brand-mark")?.src || "";
-  const mapUrl = staticMapImageUrl(spot.lat, spot.lon, 168, 168);
+  const mapUrl = staticMapImageUrl(spot.lat, spot.lon, 640, 300);
   const gmapsUrl = `https://www.google.com/maps?q=${spot.lat},${spot.lon}`;
   return `
-    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
-      <p class="panel-label" style="margin-bottom:8px">Posizione</p>
-      <div class="webcam-row">
-        <a class="location-banner" href="${gmapsUrl}" target="_blank" rel="noopener noreferrer"
-           style="background-image:url('${mapUrl}')" aria-label="Apri ${spot.name} in Google Maps">
-          <span class="location-banner-pin"><img src="${brandMarkSrc}" alt=""></span>
-        </a>
-        <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" class="webcam-btn">Apri in Google Maps →</a>
+    <a class="side-banner" href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" aria-label="Apri ${spot.name} in Google Maps">
+      <div class="side-banner-media" style="background-image:url('${mapUrl}')">
+        <span class="location-banner-pin"><img src="${brandMarkSrc}" alt=""></span>
       </div>
+      <div class="side-banner-footer">
+        <div class="side-banner-footer-text">
+          <p class="webcam-provider-name">Posizione</p>
+          <p class="side-banner-note">${spot.name}</p>
+        </div>
+        <span class="webcam-btn">Apri in Maps →</span>
+      </div>
+    </a>
+  `;
+}
+
+// Coppia di banner speculari (webcam a sinistra, posizione a destra), stessa
+// larghezza complessiva della sezione Live sopra di loro.
+function sideBannersHTML(spot) {
+  return `
+    <div class="live-side-grid">
+      ${webcamSideBannerHTML(spot)}
+      ${locationSideBannerHTML(spot)}
     </div>
   `;
 }
@@ -1931,6 +1985,7 @@ function openDrawer(spot) {
       const f = { ...current, energy: current.energy ?? energyFrom(current.height, current.period) };
       document.getElementById("drawerBody").innerHTML = `
         ${currentConditionsHTML(f, spot)}
+        ${sideBannersHTML(spot)}
         <div id="threeDaySection">
           <p class="footer-ts" style="padding:20px 0">Caricamento previsioni 7 giorni…</p>
         </div>
