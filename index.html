@@ -117,13 +117,13 @@
 
   /* grid-column:1/-1 cosi il topbar (con la sua linea separatrice) occupa
      tutta la larghezza di .app-shell, da bordo a bordo. Al suo interno è
-     di nuovo una mini-grid 72px+1fr (72px = stessa larghezza di
+     di nuovo una mini-grid 84px+1fr (84px = stessa larghezza di
      .quick-actions-col, va tenuta sincronizzata se cambia) cosi il logo
      finisce esattamente allineato al testo hero sotto — centrare .topbar
      su tutta la larghezza (senza questo secondo livello) lo avrebbe
      allineato diversamente da .wrap, che invece si centra solo nello
      spazio rimasto dopo la colonna icone. */
-  .topbar { grid-column: 1 / -1; display: grid; grid-template-columns: 72px 1fr; border-bottom: 1px solid var(--border); }
+  .topbar { grid-column: 1 / -1; display: grid; grid-template-columns: 84px 1fr; border-bottom: 1px solid var(--border); }
   .topbar-inner { grid-column: 2; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; max-width: 1180px; margin: 0 auto; width: 100%; padding: 20px 20px 18px; }
   .brand { display: flex; align-items: center; gap: 12px; }
   .brand-mark { width: 34px; height: 34px; display: block; border-radius: 50%; flex-shrink: 0; }
@@ -151,24 +151,24 @@
   /* "Naviga rapido" — 3 azioni (regioni/top spot/preferiti), solo a livello
      home: colonna a sinistra di tutto il contenuto (testo hero, regioni,
      top spot) — senza sfondo/bordo di contenitore, quindi non si legge
-     come una "barra". Colonna larga 72px (non solo quanto il pulsante)
+     come una "barra". Colonna larga 84px (non solo quanto il pulsante)
      cosi i pulsanti restano centrati con respiro invece che schiacciati
      contro il bordo sinistro della pagina; inizia dopo il topbar (vedi
      .topbar grid-column:1/-1 sopra), quindi parte esattamente dalla riga
      che separa il logo dal resto invece che dalla cima della pagina. */
-  .quick-actions-col { grid-column: 1; width: 72px; display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 24px 0 0; }
+  .quick-actions-col { grid-column: 1; width: 84px; display: flex; flex-direction: column; align-items: center; gap: 24px; padding: 26px 0 0; }
   .side-nav-item-wrap { display: flex; flex-direction: column; align-items: center; gap: 0; }
   .side-nav-item {
-    width: 52px; height: 52px; display: flex; align-items: center; justify-content: center;
-    border-radius: 12px; color: var(--ink-dim); background: transparent; border: none; cursor: pointer;
+    width: 64px; height: 64px; display: flex; align-items: center; justify-content: center;
+    border-radius: 14px; color: var(--ink-dim); background: transparent; border: none; cursor: pointer;
     transition: background .15s, color .15s;
   }
-  .side-nav-item svg { width: 26px; height: 26px; }
+  .side-nav-item svg { width: 32px; height: 32px; }
   .side-nav-item:hover { color: var(--brand); background: var(--surface-2); }
   .side-nav-item[aria-current="true"] { color: var(--brand); background: var(--accent-wash); }
   .side-nav-item-label {
-    font-family: var(--font-data); font-size: 9px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: .04em; margin-top: 5px;
+    font-family: var(--font-data); font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .04em; margin-top: 6px;
   }
 
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 20px; }
